@@ -1,6 +1,14 @@
-import "@/styles/globals.css";
+import { SessionProvider } from "next-auth/react";
+import "../styles/globals.css";
+import { Toaster } from "sonner";
+
 import type { AppProps } from "next/app";
 
 export default function App({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+  return (
+    <SessionProvider>
+      <Toaster richColors position="top-right" />
+      <Component {...pageProps} />
+    </SessionProvider>
+  );
 }

@@ -1,0 +1,73 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model UserAdmin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserStudent {
+  id                          String               @id @default(uuid())
+  name                        String
+  email                       String               @unique
+  password                    String
+  cpf                         String               @unique
+  document                    String
+  birthday                    DateTime
+  address                     String
+  address_number              String
+  neighborhood                String
+  city                        String
+  state                       String
+  postal_code                 String
+  phone                       String
+  whatsapp_optin              Boolean?
+  high_school_completion_year String
+  createdAt                   DateTime             @default(now())
+  universities                University[]         @relation("StudentUniversities")
+  PasswordResetToken          PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        Int         @id @default(autoincrement())
+  token     String      @unique
+  userId    String
+  user      UserStudent @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+}
+
+model University {
+  id           String    @id @default(uuid())
+  name         String
+  slug         String    @unique
+  site         String?
+  phone        String?
+  logo         String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+  partner_id   String?
+  benefits     String?
+  notice       String?
+  about        String?
+  status       String    @default("pending")
+  advantages   String?
+  content_html String?
+  min_price    String?
+  max_discount String?
+
+  students UserStudent[] @relation("StudentUniversities")
+
+  @@map("university")
+}
