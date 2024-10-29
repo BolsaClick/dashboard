@@ -3,7 +3,6 @@ import transporter from '@/lib/mail';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { NextApiRequest, NextApiResponse } from 'next';
-import nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid'; // Importar UUID
 
 const prisma = new PrismaClient();

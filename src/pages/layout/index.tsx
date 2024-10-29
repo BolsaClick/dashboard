@@ -3,7 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import clsx from 'clsx'; 
 import Image from 'next/image';
-import Logo from '@/public/logo-icon.png';
+import Logo from '../../../public/assets/images/logo-icon.png'
 import Header from './Header';
 import { Icon } from '@/components/Icon';
 import Loading from '@/components/Loading';
@@ -42,7 +42,7 @@ const Layout = ({ children, title }: LayoutProps) => {
   const isActive = (path: string) => router.pathname === path;
 
   const handleMenuItemClick = (path: string) => {
-    setIsLoading(true); // Mostra o loading ao trocar de página
+    setIsLoading(true); 
     router.push(path);
   };
 
