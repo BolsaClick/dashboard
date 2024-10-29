@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 const prisma = new PrismaClient();
@@ -9,12 +9,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { name, email, password } = req.body;
 
     try {
-      // Verificar se todos os campos obrigatórios estão presentes
+      
       if (!name || !email || !password) {
         return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
       }
 
-      // Verificar se o usuário já existe
+      
       const existingUserAdmin = await prisma.userAdmin.findUnique({
         where: { email },
       });
