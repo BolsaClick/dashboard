@@ -5,12 +5,12 @@ import CreateUniversity from "./create-university";
 
 import { NextSeo } from "next-seo";
 import { getUniversity, University } from "@/api/get-university";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TableFilters } from "@/components/Filter";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog } from "@headlessui/react";
 
 const Univeristy = () => {
    const [universities, setUniversities] = useState<University[]>([]);
@@ -25,7 +25,7 @@ const Univeristy = () => {
       try {
          const data = await getUniversity(page, 10, filters.name || undefined, filters.slug || undefined, filters.status || undefined);
          console.log('Dados recebidos:', data);
-         setUniversities(data.data)
+         setUniversities(data.data);
          setTotalPages(data.totalPages);
       } catch (error) {
          console.error('Error:', error);
@@ -35,11 +35,8 @@ const Univeristy = () => {
    };
 
    useEffect(() => {
-
       getUniversities(currentPage);
    }, [currentPage, filters]);
-
-
 
    const handleNextPage = () => {
       if (currentPage < totalPages) {
@@ -72,12 +69,10 @@ const Univeristy = () => {
       }));
       setCurrentPage(1);
    };
+
    return (
       <Layout title="Universidade">
-         <NextSeo
-            title="Universidade | Bolsa Click - Dashboard"
-
-         />
+         <NextSeo title="Universidade | Bolsa Click - Dashboard" />
          <div className="w-full h-screen">
             <div className="w-full rounded-md bg-white p-4">
                <div className="flex w-full justify-between">
@@ -85,6 +80,7 @@ const Univeristy = () => {
                      <Button onClick={() => setIsOpen(true)} variant="custom" className="flex gap-2">
                         <Icon name="Plus" /> Adicionar Faculdade
                      </Button>
+                     <CreateUniversity open={isOpen} setOpen={setIsOpen} />
 
                   </div>
                </div>
@@ -95,7 +91,6 @@ const Univeristy = () => {
                   <Table>
                      <TableHeader>
                         <TableRow>
-
                            <TableHead className="w-[140px]">Identificador</TableHead>
                            <TableHead className="w-[140px]">Desconto</TableHead>
                            <TableHead>Nome</TableHead>
@@ -130,14 +125,12 @@ const Univeristy = () => {
 
             <div className="flex items-center justify-end mt-4 gap-2">
                <span className="mx-4">Página {currentPage} de {totalPages}</span>
-
                <Button className="h-8 w-8 p-0" onClick={handleFirstPage} size='xs' disabled={currentPage === 1}>
                   <Icon name="CaretDoubleLeft" />
                </Button>
                <Button className="h-8 w-8 p-0" onClick={handlePreviousPage} size='xs' disabled={currentPage === 1}>
                   <Icon name="CaretLeft" className="h-4 w-4" />
                </Button>
-
                <Button className="h-8 w-8 p-0" onClick={handleNextPage} size='xs' disabled={currentPage === totalPages}>
                   <Icon name="CaretRight" className="h-4 w-4" />
                </Button>
@@ -146,11 +139,8 @@ const Univeristy = () => {
                </Button>
             </div>
          </div>
-         {isOpen && (
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-               <CreateUniversity open={isOpen} setOpen={setIsOpen} />
-            </Dialog>
-         )}
+
+
       </Layout>
    );
 };

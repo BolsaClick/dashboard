@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 
 export interface UniversityTableRowProps {
   university?: {
@@ -22,8 +21,7 @@ export interface UniversityTableRowProps {
 }
 
 export default function UniveristyTableRow({ university }: UniversityTableRowProps) {
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -55,7 +53,7 @@ export default function UniveristyTableRow({ university }: UniversityTableRowPro
     }
   };
 
-  if (!university) return null; // Verifica se university existe
+  if (!university) return null; 
 
   return (
     <TableRow>
