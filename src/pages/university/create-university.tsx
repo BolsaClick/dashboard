@@ -18,7 +18,6 @@ export default function CreateUniversity({ open, setOpen }: CreateUniversityProp
   const onSubmit = async (data: any) => {
     try {
       const response = await createUniversity(data);
-      console.log('Resposta da API:', response);
       toast.success('Faculdade cadastrada com sucesso!');
       setOpen(false);
     } catch (error) {

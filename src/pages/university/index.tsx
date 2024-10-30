@@ -23,7 +23,6 @@ const Univeristy = () => {
       setIsLoading(true);
       try {
          const data = await getUniversity(page, 10, filters.name || undefined, filters.slug || undefined, filters.status || undefined);
-         console.log('Dados recebidos:', data);
          setUniversities(data.data);
          setTotalPages(data.totalPages);
       } catch (error) {

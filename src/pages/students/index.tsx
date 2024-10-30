@@ -25,7 +25,6 @@ const Univeristy = () => {
       setIsLoading(true);
       try {
          const data = await getStudent(page, 10, filters.name || undefined, filters.email || undefined,);
-         console.log('Dados recebidos:', data);
          setUniversities(data.data)
          setTotalPages(data.totalPages);
       } catch (error) {

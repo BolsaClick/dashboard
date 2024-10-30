@@ -35,7 +35,6 @@ export default function CreateStudents({ open, setOpen }: CreateStudentProps) {
       try {
         const response = await getAllUniversities();
         setUniversities(response.data); 
-        console.log(response.data);
       } catch (error) {
         console.error('Erro ao buscar universidades:', error);
         toast.error('Erro ao buscar universidades.');
@@ -49,7 +48,6 @@ export default function CreateStudents({ open, setOpen }: CreateStudentProps) {
     try {
       data.universitySlug = selectedUniversitySlug; 
       await createStudents(data);
-      console.log(data);
       toast.success('Aluno cadastrado com sucesso!');
       reset();
     } catch (error) {
