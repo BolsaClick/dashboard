@@ -9,13 +9,9 @@ import Cors from 'cors';
 
 const prisma = new PrismaClient();
 
-
-
-
-
 const cors = Cors({
   methods: ['POST', 'OPTIONS'], 
-  origin: '*', 
+  origin: 'https://bolsaclick.com.br', 
   allowedHeaders: ['Content-Type'], 
 });
 
