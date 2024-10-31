@@ -10,20 +10,12 @@ import Cors from 'cors';
 const prisma = new PrismaClient();
 
 
-const allowedOrigins = ['httpS://anhangueracursos.com.br/', 'https://bolsaclick.com.br', 'http://localhost:5173'];
 
 
 
 const cors = Cors({
   methods: ['POST', 'OPTIONS'], 
-  origin: (origin, callback) => {
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin); 
-    } else {
-      callback(new Error('CORS não permitido para este domínio')); 
-    }
-  },
+  origin: '*', 
   allowedHeaders: ['Content-Type'], 
 });
 
