@@ -41,7 +41,7 @@ export const createAccountDashboard = (password: string, name: string, token: st
           <p>Seu cadastro foi realizado com sucesso.</strong></p>
           <p>Sua senha é: <strong>${password}</strong></p>
           <p>Por favor, altere a senha assim que possível.</p>
-          <p>Você pode usar o seguinte token para redefinir sua senha:  <a href="http://localhost:3000/reset?token=${token}" class="btn">Redefinir Senha</a>
+          <p>Você pode usar o seguinte token para redefinir sua senha:   <a href="${process.env.NEXT_PUBLIC_API_URL}/reset?token=${token}" class="btn">Redefinir Senha</a>
           <p>Atenciosamente,<br>A equipe Bolsa Click</p>
           <div class="footer">
               <p>&copy; 2024 Bolsa Click</p>

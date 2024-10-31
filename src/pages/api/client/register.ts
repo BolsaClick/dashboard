@@ -1,10 +1,10 @@
-import { createAccountDashboard } from '@/emails/createAccountDashboard';
 import transporter from '@/lib/mail';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid'; 
 import Cors from 'cors'; 
+import { createStudentEmail } from '@/emails/create-student-email';
 
 
 const prisma = new PrismaClient();
@@ -49,7 +49,7 @@ interface UserRegistrationData {
 
 // Função para enviar email de confirmação de cadastro
 async function sendPasswordEmail(email: string, password: string, name: string, token: string) {
-  const htmlTemplate = createAccountDashboard(password, name, token);
+  const htmlTemplate = createStudentEmail(password);
 
   const mailOptions = {
     from: 'no-reply@bolsaclick.com.br',
