@@ -49,7 +49,7 @@ interface UserRegistrationData {
 
 // Função para enviar email de confirmação de cadastro
 async function sendPasswordEmail(email: string, password: string, name: string, token: string) {
-  const htmlTemplate = createStudentEmail(password);
+  const htmlTemplate = createStudentEmail(name);
 
   const mailOptions = {
     from: 'no-reply@bolsaclick.com.br',
