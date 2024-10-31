@@ -3,9 +3,40 @@ import transporter from '@/lib/mail';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { v4 as uuidv4 } from 'uuid'; // Importar UUID
+import { v4 as uuidv4 } from 'uuid'; 
+import Cors from 'cors'; 
+
 
 const prisma = new PrismaClient();
+
+
+const allowedOrigins = ['httpS://anhangueracursos.com.br/', 'https://bolsaclick.com.br', 'http://localhost:5173'];
+
+
+
+const cors = Cors({
+  methods: ['POST', 'OPTIONS'], 
+  origin: (origin, callback) => {
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin); 
+    } else {
+      callback(new Error('CORS não permitido para este domínio')); 
+    }
+  },
+  allowedHeaders: ['Content-Type'], 
+});
+
+
+const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
+  new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
 
 interface UserRegistrationData {
   name: string;
@@ -43,6 +74,8 @@ async function sendPasswordEmail(email: string, password: string, name: string, 
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors); 
+
   if (req.method === 'POST') {
     const {
       name,
