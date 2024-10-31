@@ -83,7 +83,7 @@ const Univeristy = () => {
             <div className="w-full rounded-md bg-white p-4">
                <div className="flex w-full justify-between">
                   <div className="w-full">
-                           <Button variant="custom" className="flex gap-2">
+                           <Button variant="custom" onClick={() => setIsOpen(true)} className="flex gap-2">
                               <Icon name="Plus" /> Adicionar Aluno
                            </Button>
                    

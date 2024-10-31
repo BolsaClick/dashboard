@@ -17,7 +17,7 @@ export default function CreateUniversity({ open, setOpen }: CreateUniversityProp
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await createUniversity(data);
+       await createUniversity(data);
       toast.success('Faculdade cadastrada com sucesso!');
       setOpen(false);
     } catch (error) {
@@ -26,7 +26,7 @@ export default function CreateUniversity({ open, setOpen }: CreateUniversityProp
     }
   };
 
-  if (!open) return null; // Não renderiza o modal se não estiver aberto
+  if (!open) return null; 
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">

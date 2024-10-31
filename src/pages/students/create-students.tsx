@@ -44,6 +44,8 @@ export default function CreateStudents({ open, setOpen }: CreateStudentProps) {
     fetchUniversities();
   }, []);
 
+
+  
   const onSubmit = async (data: any) => {
     try {
       data.universitySlug = selectedUniversitySlug; 
@@ -82,8 +84,15 @@ export default function CreateStudents({ open, setOpen }: CreateStudentProps) {
     reset();
   };
 
+  if (!open) return null; 
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+   
+       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
+       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
+         <h2 className="text-lg font-bold">Cadastrar Aluno</h2>
+ 
+         <form onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 mt-4">
           <Input
             {...register('name', { required: true })}
@@ -275,11 +284,13 @@ export default function CreateStudents({ open, setOpen }: CreateStudentProps) {
         </div>
 
         <div className="flex justify-end mt-6">
-            <Button type="button" onClick={() => setOpen(false)} variant="outline" className="mr-4">
-              Cancelar
+            <Button type="button" onClick={handleClean} variant="outline" className="mr-4">
+              Limpar
             </Button>
             <Button type="submit">Cadastrar Faculdade</Button>
           </div>
       </form>
+       </div>
+     </div>
   );
 }
