@@ -26,12 +26,12 @@ CREATE TABLE "UserStudent" (
     "city" TEXT,
     "state" TEXT,
     "postal_code" TEXT,
-    "phone" TEXT NOT NULL,
+    "phone" TEXT,
     "whatsapp_optin" BOOLEAN,
-    "high_school_completion_year" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "high_school_completion_year" TEXT,
     "courseId" TEXT,
     "courseName" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "UserStudent_pkey" PRIMARY KEY ("id")
 );

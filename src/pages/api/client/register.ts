@@ -61,6 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whatsapp_optin,
       high_school_completion_year,
       universitySlugs,
+      courseId, 
+      courseName, 
     }: UserRegistrationData = req.body;
 
     try {
@@ -113,6 +115,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           phone,
           whatsapp_optin,
           high_school_completion_year,
+          courseId, 
+          courseName, 
           universities: {
             connect: universities.map((university) => ({ id: university.id })),
           },
