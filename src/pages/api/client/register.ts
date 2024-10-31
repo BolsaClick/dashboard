@@ -24,7 +24,6 @@ interface UserRegistrationData {
   whatsapp_optin: boolean;
   high_school_completion_year: string;
   universitySlugs: string[];
-
   courseId: string;
   courseName: string;
 }
@@ -62,8 +61,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whatsapp_optin,
       high_school_completion_year,
       universitySlugs,
-      courseId,
-      courseName,
     }: UserRegistrationData = req.body;
 
     try {
@@ -119,8 +116,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           universities: {
             connect: universities.map((university) => ({ id: university.id })),
           },
-          courseId,
-          courseName
         },
         include: {
           universities: true,

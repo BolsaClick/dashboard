@@ -24,22 +24,20 @@ model UserStudent {
   email                       String               @unique
   password                    String
   cpf                         String               @unique
-  document                    String?
+  document                    String
   birthday                    DateTime
-  address                     String?
-  address_number              String?
-  neighborhood                String?
-  city                        String?
-  state                       String?
-  postal_code                 String?
+  address                     String
+  address_number              String
+  neighborhood                String
+  city                        String
+  state                       String
+  postal_code                 String
   phone                       String
   whatsapp_optin              Boolean?
   high_school_completion_year String
   createdAt                   DateTime             @default(now())
   universities                University[]         @relation("StudentUniversities")
   PasswordResetToken          PasswordResetToken[]
-  courseId                    String?
-  courseName                  String?
 }
 
 model PasswordResetToken {
