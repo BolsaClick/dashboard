@@ -65,7 +65,7 @@ export const createStudentEmail = (name: string) => `
           
           <!-- Logos -->
           <div class="logos">
-              <img src="https://bolsaclick.com.br/images/logo-bolsa-click.svg" alt="Logo Bolsa Click" class="logo" />
+              <img src="https://bolsaclick.com.br/images/logo-green.svg" alt="Logo Bolsa Click" class="logo" />
               <div class="divider"></div>
               <img src="https://bolsaclick.com.br/images/logo-anhanguera.svg" alt="Logo Anhanguera" class="logo" />
           </div>
