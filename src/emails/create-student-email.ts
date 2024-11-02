@@ -85,7 +85,7 @@ export const createStudentEmail = (name: string) => `
         <h1>✨ Você está a poucos passos de ser um universitário!</h1>
       </div>
       <p>Olá, ${name}</p>
-      <p>Já identificamos a sua <span class="highlight">Inscrição Gratuita</span> para estudar <strong>Análise e Desenvolvimento de Sistemas</strong> com bolsa na Anhanguera!</p>
+      <p>Já identificamos a sua <span class="highlight">Inscrição Gratuita</span> para estudar com bolsa na Anhanguera!</p>
       
       <h2>Próximo passo:</h2>
       <p>Acesse o site da instituição clicando no botão abaixo e digite o seu CPF para acompanhar a sua inscrição. É neste site que você vai acessar o boleto para pagamento da sua matrícula.</p>
