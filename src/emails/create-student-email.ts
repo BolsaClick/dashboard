@@ -1,10 +1,10 @@
 export const createStudentEmail = (name: string) => `
   <!DOCTYPE html>
- <html>
+  <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmação de Cadastro</title>
+    <title>Confirmação de Inscrição</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -21,15 +21,29 @@ export const createStudentEmail = (name: string) => `
         background: white;
         border: 1px solid #ccc;
         border-radius: 5px;
+        margin-top: 10px;
       }
       .header {
-        background: #00875F;
-        color: white;
-        padding: 10px 0;
         text-align: center;
-        border-radius: 5px 5px 0 0;
+        color: #333;
+    
+       
       }
-      .logos {
+      .highlight {
+        font-weight: bold;
+        color: #00875F;
+      }
+      .button {
+        display: inline-block;
+        padding: 10px 20px;
+        margin-top: 20px;
+        background-color: #00875F;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+       .logos {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -40,11 +54,11 @@ export const createStudentEmail = (name: string) => `
         max-width: 120px; /* Defina um tamanho máximo menor para dispositivos móveis */
         margin: 10px; /* Espaço ao redor das logos */
       }
-      .divider {
-        width: 1px;
-        background-color: #ccc;
-        height: 50px;
-        margin: 0 20px;
+      .info {
+        margin-top: 20px;
+        background-color: #f2f2f2;
+        padding: 15px;
+        border-radius: 5px;
       }
       .footer {
         margin-top: 20px;
@@ -52,20 +66,12 @@ export const createStudentEmail = (name: string) => `
         font-size: 0.8em;
         color: #666;
       }
-
-      /* Estilos responsivos para dispositivos móveis */
       @media (max-width: 480px) {
         .container {
           padding: 15px;
         }
-        .header h1 {
-          font-size: 1.5em;
-        }
-        .logos {
-          flex-direction: column; /* Alterar para coluna em dispositivos móveis */
-        }
-        .divider {
-          display: none; /* Ocultar o divisor em dispositivos móveis */
+        .button {
+          padding: 12px 20px;
         }
       }
     </style>
@@ -73,27 +79,39 @@ export const createStudentEmail = (name: string) => `
   <body>
     <div class="container">
       <div class="header">
-        <h1>Parabéns!</h1>
+       <div class="logos">
+        <img src="http://cdn.mcauto-images-production.sendgrid.net/3c7ce3637722532c/cb322cfe-0d17-4441-80c2-3dbe8e390072/406x68.png" alt="Logo Bolsa Click" class="logo" />
+        </div>
+        <h1>✨ Você está a poucos passos de ser um universitário!</h1>
       </div>
       <p>Olá, ${name}</p>
-      <p>Seu cadastro foi realizado com sucesso!</p>
-      <p><strong>Parabéns! Você ganhou 80% de desconto na universidade parceira.</strong></p>
-      <p>Em breve, alguém da faculdade entrará em contato com você para fornecer mais informações e ajudá-lo em sua jornada acadêmica.</p>
-      <p>Se você tiver alguma dúvida, não hesite em entrar em contato conosco.</p>
+      <p>Já identificamos a sua <span class="highlight">Inscrição Gratuita</span> para estudar <strong>Análise e Desenvolvimento de Sistemas</strong> com bolsa na Anhanguera!</p>
       
-      <!-- Logos -->
-      <div class="logos">
+      <h2>Próximo passo:</h2>
+      <p>Acesse o site da instituição clicando no botão abaixo e digite o seu CPF para acompanhar a sua inscrição. É neste site que você vai acessar o boleto para pagamento da sua matrícula.</p>
+      <a href="https://www.anhanguera.com/area-do-candidato/login" class="button">Acompanhar minha inscrição</a>
+      
+    <p><strong>Aproveite, nossas ofertas expiram rápido.</strong> Faça o pagamento da sua matrícula para garantir o preço que viu em nosso site!</p>
+
+      <h2>Precisa de ajuda? Chama no Whats!</h2>
+      <a href="https://wa.me/55480000-0000" class="button">Iniciar conversa</a>
+      <p>Estamos on-line de segunda a sexta, das 9h às 18h.</p>
+      
+      <p>Vai de graduação ou de pós? Vai de Bolsa!</p>
+      
+      <p>São Paulo - SP.<br>Atendimento de segunda a sexta, das 9h às 18h pelo WhatsApp (11) 0000-0000.</p>
+      
+      <div class="footer">
+        <div class="logos">
         <img src="http://cdn.mcauto-images-production.sendgrid.net/3c7ce3637722532c/cb322cfe-0d17-4441-80c2-3dbe8e390072/406x68.png" alt="Logo Bolsa Click" class="logo" />
         <div class="divider"></div>
         <img src="http://cdn.mcauto-images-production.sendgrid.net/3c7ce3637722532c/5506aac3-b8c8-4458-af0d-844853a9aa30/170x60.png" alt="Logo Anhanguera" class="logo" />
       </div>
-      
-      <p>Atenciosamente,<br>A equipe Bolsa Click</p>
-      <div class="footer">
-        <p>&copy; 2024 Bolsa Click</p>
+       
+        <p>Para deixar de receber esses e-mails, <a href="https://unsubscribe.link">clique aqui</a>.</p>
       </div>
     </div>
   </body>
-</html>
+  </html>
 
 `;
