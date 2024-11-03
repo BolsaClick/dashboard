@@ -94,7 +94,7 @@ export const createStudentEmail = (name: string) => `
     <p><strong>Aproveite, nossas ofertas expiram rápido.</strong> Faça o pagamento da sua matrícula para garantir o preço que viu em nosso site!</p>
 
       <h2>Precisa de ajuda? Chama no Whats!</h2>
-      <a href="https://wa.me/55480000-0000" class="button">Iniciar conversa</a>
+      <a href="https://wa.me/5511940063113" class="button">Iniciar conversa</a>
       <p>Estamos on-line de segunda a sexta, das 9h às 18h.</p>
       
       <p>Vai de graduação ou de pós? Vai de Bolsa!</p>
