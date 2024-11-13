@@ -1,20 +1,36 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import Cors from 'cors';
 
 const prisma = new PrismaClient();
 
+const cors = Cors({
+  methods: ['GET', 'POST', 'OPTIONS'], 
+  allowedHeaders: ['Content-Type', 'Authorization'], 
+  origin: '*', 
+});
+
+const runMiddleware = (req: NextApiRequest, res: NextApiResponse) => {
+  return new Promise((resolve, reject) => {
+    cors(req, res, (result) => {
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res);
+
   try {
-    // Verifique se o método da requisição é GET
     if (req.method === 'GET') {
-      // Busca todos os cursos
       const courses = await prisma.course.findMany();
       
-      // Retorna os cursos encontrados
       return res.status(200).json(courses);
     }
 
-    // Se o método não for GET, retorna erro
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Error fetching courses:', error);
