@@ -96,6 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               ) {
                 return {
                   courseId: id,
+                  courseName: course.name,
                   [modalidade]: courseData[modalidade as keyof typeof courseData] || null,
                 };
               }
