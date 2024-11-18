@@ -69,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
               const courseData = {
                 courseId: id,
+                courseName: course.name,
                 presencial: presencialResponse.data,
                 distancia: distanciaResponse.data,
                 semipresencial: semipresencialResponse.data,
@@ -86,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               });
 
               if (Object.keys(courseData).length <= 1) {
-                // Se não houver modalidades com dados, retornar null para esse curso
+
                 return null;
               }
 
