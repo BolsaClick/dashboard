@@ -35,7 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const limitNumber = parseInt(limit as string, 10);
 
       let courses;
-      let totalCourses = 0
       if (courseId) {
         courses = await prisma.course.findMany({
           where: { id: String(courseId) },
@@ -51,8 +50,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-
-      totalCourses = await prisma.course.count();
       const queryState = Array.isArray(state) ? state[0] : state || "SP";
       const queryCity = Array.isArray(city) ? city[0] : city || "São Paulo";
 
@@ -119,15 +116,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Filtrar cursos sem modalidades válidas
       const filteredResponses = apiResponses.flat().filter((course) => course !== null);
-      const totalPages = Math.ceil(totalCourses / limitNumber);
-
+      
 
       res.status(200).json({
         courses: filteredResponses,
         pagination: {
-          pageIndex: pageNumber,
-          perPage: limitNumber,
-          totalCount: totalPages
+          page: pageNumber,
+          limit: limitNumber,
         },
       });
     } catch (error) {
