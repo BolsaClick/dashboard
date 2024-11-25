@@ -1,14 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import { NextApiRequest, NextApiResponse } from "next";
-import Cors from 'cors';
+import Cors from "cors";
 
 const prisma = new PrismaClient();
 
 const cors = Cors({
-  methods: ['GET', 'POST', 'OPTIONS'], 
-  allowedHeaders: ['Content-Type', 'Authorization'], 
-  origin: '*', 
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "*",
 });
 
 const runMiddleware = (req: NextApiRequest, res: NextApiResponse) => {
@@ -23,13 +23,12 @@ const runMiddleware = (req: NextApiRequest, res: NextApiResponse) => {
   });
 };
 
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res);
 
   if (req.method === "GET") {
     try {
-      const { courseId, state, city, modalidade, page = 1, limit = 10 } = req.query;
+      const { courseId, state, city, modalidade, brand, page = 1, limit = 10 } = req.query;
 
       const pageNumber = parseInt(page as string, 10);
       const limitNumber = parseInt(limit as string, 10);
@@ -53,70 +52,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const queryState = Array.isArray(state) ? state[0] : state || "SP";
       const queryCity = Array.isArray(city) ? city[0] : city || "São Paulo";
 
+      const brands = Array.isArray(brand) ? brand : brand ? [brand] : ["anhanguera", "ampli", "unopar", "pitagoras"];
+
       const apiResponses = await Promise.all(
         courses.map(async (course) => {
-          const apiRequests = course.courseIds.map(async (id) => {
-            const urlPresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=anhanguera&modality=Presencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
-            const urlDistancia = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=anhanguera&modality=A%20dist%C3%A2ncia&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
-            const urlSemipresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=anhanguera&modality=Semipresencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
+          const apiRequests = course.courseIds.flatMap((id) =>
+            brands.map(async (brand) => {
+              const urlPresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=${brand}&modality=Presencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
+              const urlDistancia = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=${brand}&modality=A%20dist%C3%A2ncia&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
+              const urlSemipresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=${brand}&modality=Semipresencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
 
-            try {
-              const [presencialResponse, distanciaResponse, semipresencialResponse] = await Promise.all([
-                axios.get(urlPresencial),
-                axios.get(urlDistancia),
-                axios.get(urlSemipresencial),
-              ]);
+              try {
+                const [presencialResponse, distanciaResponse, semipresencialResponse] = await Promise.all([
+                  axios.get(urlPresencial),
+                  axios.get(urlDistancia),
+                  axios.get(urlSemipresencial),
+                ]);
 
-              const courseData = {
-                courseId: id,
-                courseName: course.name,
-                presencial: presencialResponse.data,
-                distancia: distanciaResponse.data,
-                semipresencial: semipresencialResponse.data,
-              };
-
-              // Remover modalidades vazias
-              Object.keys(courseData).forEach((key) => {
-                if (
-                  courseData[key as keyof typeof courseData] &&
-                  courseData[key as keyof typeof courseData].data &&
-                  courseData[key as keyof typeof courseData].data.length === 0
-                ) {
-                  delete courseData[key as keyof typeof courseData];
-                }
-              });
-
-              if (Object.keys(courseData).length <= 1) {
-
-                return null;
-              }
-
-              if (
-                typeof modalidade === "string" &&
-                ["presencial", "distancia", "semipresencial"].includes(modalidade)
-              ) {
-                return {
+                const courseData = {
+                  brand,
                   courseId: id,
                   courseName: course.name,
-                  [modalidade]: courseData[modalidade as keyof typeof courseData] || null,
+                  presencial: presencialResponse.data,
+                  distancia: distanciaResponse.data,
+                  semipresencial: semipresencialResponse.data,
                 };
-              }
 
-              return courseData;
-            } catch (error) {
-              console.error(`Erro ao buscar dados para o curso ${course.name} (ID: ${id}):`, error);
-              return null;
-            }
-          });
+                // Remover modalidades vazias
+                Object.keys(courseData).forEach((key) => {
+                  if (
+                    courseData[key as keyof typeof courseData] &&
+                    courseData[key as keyof typeof courseData].data &&
+                    courseData[key as keyof typeof courseData].data.length === 0
+                  ) {
+                    delete courseData[key as keyof typeof courseData];
+                  }
+                });
+
+                if (Object.keys(courseData).length <= 2) {
+                  return null;
+                }
+
+                if (
+                  typeof modalidade === "string" &&
+                  ["presencial", "distancia", "semipresencial"].includes(modalidade)
+                ) {
+                  return {
+                    brand,
+                    courseId: id,
+                    courseName: course.name,
+                    [modalidade]: courseData[modalidade as keyof typeof courseData] || null,
+                  };
+                }
+
+                return courseData;
+              } catch (error) {
+                console.error(`Erro ao buscar dados para o curso ${course.name} (ID: ${id}, Marca: ${brand}):`, error);
+                return null;
+              }
+            })
+          );
 
           const filteredApiRequests = (await Promise.all(apiRequests)).filter((course) => course !== null);
           return filteredApiRequests;
         })
       );
 
-      // Filtrar cursos sem modalidades válidas
       const filteredResponses = apiResponses.flat().filter((course) => course !== null);
-      
 
       res.status(200).json({
         courses: filteredResponses,
@@ -126,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
     } catch (error) {
-      console.error("Erro ao buscar dados do curso:", error);
+      console.error("Erro ao buscar o curso e dados da API externa:", error);
       res.status(500).json({ error: "Erro ao buscar o curso e dados da API externa." });
     }
   } else {
