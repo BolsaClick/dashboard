@@ -1,11 +1,28 @@
-// pages/api/sendgrid/subscribe.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import sgMail from '@sendgrid/mail';
-
-// Configuração da API Key do SendGrid
+import Cors from 'cors'; 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
+
+
+const cors = Cors({
+  methods: ['POST', 'OPTIONS'], 
+  origin: '*', 
+  allowedHeaders: ['Content-Type'], 
+});
+
+const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
+  new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  
+  await runMiddleware(req, res, cors); 
   if (req.method === 'POST') {
     const { email, firstName, city, state } = req.body;
 
