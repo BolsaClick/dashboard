@@ -38,7 +38,7 @@ export const createStudentEmail = (name: string) => `
         padding: 10px 20px;
         margin-top: 20px;
         background-color: #00875F;
-        color: white;
+        color: #fff;
         text-decoration: none;
         border-radius: 5px;
         font-weight: bold;
@@ -97,9 +97,9 @@ export const createStudentEmail = (name: string) => `
       <a href="https://wa.me/5511940063113" class="button">Iniciar conversa</a>
       <p>Estamos on-line de segunda a sexta, das 9h às 18h.</p>
       
-      <p>Vai de graduação ou de pós? Vai de Bolsa!</p>
+      <p>Vai de graduação ou de pós? Bolsa Click!</p>
       
-      <p>São Paulo - SP.<br>Atendimento de segunda a sexta, das 9h às 18h pelo WhatsApp (11) 0000-0000.</p>
+      <p>São Paulo - SP.<br>Atendimento de segunda a sexta, das 9h às 18h pelo WhatsApp (11) 9 4006-3113.</p>
       
       <div class="footer">
         <div class="logos">
