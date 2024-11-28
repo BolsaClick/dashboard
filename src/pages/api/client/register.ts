@@ -49,10 +49,11 @@ interface UserRegistrationData {
 }
 
 // Função para enviar email de confirmação de cadastro
-async function sendPasswordEmail(email: string, password: string, name: string, token: string) {
+async function sendPasswordEmail(email: string, password: string, name: string,  courseName: string) {
   const templateData = {
     name,
     password,  
+    courseName,
     siteName: 'Bolsa Click', 
   };
 
@@ -147,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const token = uuidv4(); 
 
-      await sendPasswordEmail(email, finalPassword, name, token); 
+      await sendPasswordEmail(email, finalPassword, name, courseName); 
 
       return res.status(201).json({ message: 'Usuário registrado com sucesso!', user });
     } catch (error) {
