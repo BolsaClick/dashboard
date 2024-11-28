@@ -38,7 +38,7 @@ export const createStudentEmail = (name: string, courseName: string) => `
         padding: 10px 20px;
         margin-top: 20px;
         background-color: #00875F;
-        color: white;
+        color: #fff;
         text-decoration: none;
         border-radius: 5px;
         font-weight: bold;
@@ -85,7 +85,7 @@ export const createStudentEmail = (name: string, courseName: string) => `
         <h1>✨ Você está a poucos passos de ser um universitário!</h1>
       </div>
       <p>Olá, ${name}</p>
-      <p>Já identificamos a sua <span class="highlight">Inscrição Gratuita</span> para estudar <strong>${courseName}</strong> com bolsa na Anhanguera!</p>
+      <p>Já identificamos a sua <span class="highlight">Inscrição Gratuita</span> ${courseName} para estudar com bolsa na Anhanguera!</p>
       
       <h2>Próximo passo:</h2>
       <p>Acesse o site da instituição clicando no botão abaixo e digite o seu CPF para acompanhar a sua inscrição. É neste site que você vai acessar o boleto para pagamento da sua matrícula.</p>
@@ -97,7 +97,7 @@ export const createStudentEmail = (name: string, courseName: string) => `
       <a href="https://wa.me/5511940063113" class="button">Iniciar conversa</a>
       <p>Estamos on-line de segunda a sexta, das 9h às 18h.</p>
       
-      <p>Vai de graduação ou de pós? Vai de Bolsa!</p>
+      <p>Vai de graduação ou de pós? Bolsa Click!</p>
       
       <p>São Paulo - SP.<br>Atendimento de segunda a sexta, das 9h às 18h pelo WhatsApp (11) 9 4006-3113.</p>
       
