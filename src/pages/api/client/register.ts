@@ -54,6 +54,7 @@ async function sendPasswordEmail(email: string, password: string, name: string, 
     name,
     password,  
     courseName,
+    subject: 'Confirmação de Cadastro', 
     siteName: 'Bolsa Click', 
   };
 
