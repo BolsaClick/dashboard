@@ -21,10 +21,10 @@ const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
     });
   });
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  
+
   await runMiddleware(req, res, cors); 
   if (req.method === 'POST') {
-    const { email, firstName, city, state } = req.body;
+    const { email, firstName, city, state, courseId, courseName, brand, modality, unitId } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'E-mail é obrigatório' });
@@ -38,7 +38,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           first_name: firstName,
           custom_fields: {
             w1_T: city,    
-            w2_T: state,   
+            w2_T: state,
+            c_id: courseId,
+            c_name: courseName,
+            brand: brand,
+            modality: modality,
+            unitId: unitId,
           }
         }
       ]
