@@ -5,7 +5,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid'; 
 import Cors from 'cors'; 
 import { createStudentEmail } from '@/emails/create-student-email';
-import { sendEmail } from '@/lib/sendgrid';
 
 
 const prisma = new PrismaClient();
@@ -49,15 +48,17 @@ interface UserRegistrationData {
 }
 
 // Função para enviar email de confirmação de cadastro
-async function sendPasswordEmail(email: string, password: string, name: string,  courseName: string) {
-  const templateData = {
-    name,
-    password,  
-    courseName,
-    siteName: 'Bolsa Click', 
+async function sendPasswordEmail(email: string, name: string,  courseName: string) {
+  const htmlTemplate = createStudentEmail(name, courseName);
+
+  const mailOptions = {
+    from: 'no-reply@bolsaclick.com.br',
+    to: email,
+    subject: 'Cadastro realizado com sucesso',
+    html: htmlTemplate,
   };
 
-  await sendEmail(email, templateData);
+  await transporter.sendMail(mailOptions);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -148,7 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const token = uuidv4(); 
 
-      await sendPasswordEmail(email, finalPassword, name, courseName); 
+      await sendPasswordEmail(email,  name,  courseName); 
 
       return res.status(201).json({ message: 'Usuário registrado com sucesso!', user });
     } catch (error) {
