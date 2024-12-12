@@ -5,6 +5,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid'; 
 import Cors from 'cors'; 
 import { createStudentEmail } from '@/emails/create-student-email';
+import { isValid, parseISO } from 'date-fns';
 
 
 const prisma = new PrismaClient();
@@ -150,6 +151,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const token = uuidv4(); 
 
       await sendPasswordEmail(email,  name,  courseName); 
+   
 
       return res.status(201).json({ message: 'Usuário registrado com sucesso!', user });
     } catch (error) {
