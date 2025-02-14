@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   await runMiddleware(req, res, cors); 
   if (req.method === 'POST') {
-    const { email, firstName, city, state, courseId, courseName, brand, modality, unitId } = req.body;
+    const { email, firstName, city, state, courseId, courseName, brand, modality, unitId, cpf } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'E-mail é obrigatório' });
@@ -44,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             brand: brand,
             modality: modality,
             unitId: unitId,
+            cpf: cpf,
           }
         }
       ]
