@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { format, subDays, subHours, isAfter } from "date-fns";
-import { StudentChart } from "./StudentChart";
 import CardDisplay from "./CardDisplay";
+import StudentChart from "./StudentChart";
 
 type ChartData = {
   date: string;
