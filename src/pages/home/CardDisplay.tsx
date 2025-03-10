@@ -17,7 +17,7 @@ interface CommissionData {
   }[];
 }
 
-const CardDisplay = () => {
+export const CardDisplay = () => {
   const [data, setData] = useState<CommissionData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');

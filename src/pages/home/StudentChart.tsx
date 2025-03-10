@@ -12,7 +12,7 @@ import {
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function StudentChart({
+export default function StudentChart({
   data,
   isLoading,
 }: {
