@@ -50,7 +50,7 @@ export default function StudentTableRow({ student }: StudentTableRowProps) {
 
   return (
     <TableRow>
-      <TableCell></TableCell>
+
       <TableCell className="font-medium">{student.name ?? 'N/A'}</TableCell>
       <TableCell className="font-mono text-xs font-medium">{student.email ?? 'N/A'}</TableCell>
       <TableCell className="font-medium">{formatToCPF(student.cpf)}</TableCell>
