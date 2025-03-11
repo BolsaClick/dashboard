@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { format, subDays, subHours, isAfter } from "date-fns";
 import CardDisplay from "./CardDisplay";
 import StudentChart from "./StudentChart";
+import { NextSeo } from "next-seo";
 
 type ChartData = {
   date: string;
@@ -96,6 +97,10 @@ export default function Home() {
 
   return (
     <Layout title="home">
+       <NextSeo
+                  title="Home | Bolsa Click - Dashboard"
+      
+               />
       <div className="p-6 space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Dashboard - Alunos</h1>
