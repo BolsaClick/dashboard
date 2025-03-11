@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { fetchCommissionData } from './api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton"; // Importe o Skeleton do ShadcnUI
-
+import { fetchCommissionData } from '@/api/api'
 interface CommissionData {
   _id: string;
   name: string;
@@ -24,7 +23,7 @@ export const CardDisplay = () => {
   const [analytics, setAnalytics] = useState({
     total: 0,
     waiting: 0,
-    totalCpf: 0, // Variável para contar o total de CPFs
+    totalCpf: 0, 
     idsByCpf: {} as { [cpf: string]: string[] },
   });
 
@@ -32,7 +31,7 @@ export const CardDisplay = () => {
     const fetchData = async () => {
       try {
         const result = await fetchCommissionData();
-        setData(result.data);
+        setData(result.data.data);
         console.log(result.data, 'aqui resultado');
       } catch (err: any) {
         setError(err.message);
@@ -54,7 +53,7 @@ export const CardDisplay = () => {
     let total = 0;
     let waiting = 0;
     const idsByCpf: { [cpf: string]: string[] } = {};
-    const cpfSet = new Set<string>(); // Usando Set para garantir CPFs únicos
+    const cpfSet = new Set<string>(); 
 
     data.forEach(item => {
       item.candidateInstallments.forEach(installment => {
