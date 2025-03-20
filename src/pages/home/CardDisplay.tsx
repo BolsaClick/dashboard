@@ -32,7 +32,6 @@ export const CardDisplay = () => {
       try {
         const result = await fetchCommissionData();
         setData(result.data.data);
-        console.log(result.data, 'aqui resultado');
       } catch (err: any) {
         setError(err.message);
       } finally {
