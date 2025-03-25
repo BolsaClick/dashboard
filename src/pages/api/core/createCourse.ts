@@ -19,7 +19,6 @@ const registerCourse = async (courseName: string, newCourseId: string) => {
           where: { id: existingCourse.id },
           data: { courseIds: updatedCourseIds },
         });
-        console.log(`Course ${courseName} updated with new course_id.`);
       } else {
         console.log(`Course ${courseName} already contains the course_id.`);
       }

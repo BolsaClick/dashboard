@@ -26,7 +26,6 @@ Vai de graduação ou pós? Bolsa Click!`
 
     });
 
-    console.log('Mensagem enviada:', message.sid);
   } catch (error) {
     console.error('Erro ao enviar mensagem no WhatsApp:', error);
   }

@@ -36,14 +36,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       items,
       payments
     } = req.body;
+    
+    const apiKey = process.env.PAGARME_API_KEY;
 
+    if (!apiKey) {
+      return res.status(500).json({ success: false, message: 'API Key não configurada' });
+    }
     const response = await axios.post('https://api.pagar.me/core/v5/orders', {
       customer,
       items,
       payments
     }, {
       headers: {
-        Authorization: `Basic ${Buffer.from('sk_test_3e1065f0250544b2a7e2cc6b9006e88d:').toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
         'Content-Type': 'application/json'
       }
     });

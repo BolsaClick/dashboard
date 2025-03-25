@@ -50,10 +50,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     // Log para depuração
-    console.log('🔍 Eventos processados:', JSON.stringify(flattenedEvents, null, 2));
 
     const filteredEvents = flattenedEvents.filter((event) => {
-      if (!event?.data?.id) return false; // Garante que o evento tem a estrutura correta
+      if (!event?.data?.id) return false; 
       return filterId ? event.data.id === filterId : true;
     });
 

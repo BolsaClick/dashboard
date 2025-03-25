@@ -12,7 +12,6 @@ export const sendEmail = async (to: string, templateData: Record<string, any>) =
 
   try {
     await sgMail.send(msg);
-    console.log('E-mail enviado com sucesso!');
   } catch (error) {
     console.error('Erro ao enviar e-mail:', error);
     throw new Error('Erro ao enviar e-mail.');
