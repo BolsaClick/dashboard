@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ message: 'Nenhuma atualização recente.' });
     }
 
-
+// aqui o getpayment 
     const events = await Promise.all(keys.map((key) => redis.get(key)));
 
     const filteredEvents = events
