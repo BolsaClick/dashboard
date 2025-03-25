@@ -1,7 +1,29 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import redis, { connectRedis } from '@/lib/redis';
+import Cors from "cors";
+
+const cors = Cors({
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "*",
+});
+
+const runMiddleware = (req: NextApiRequest, res: NextApiResponse) => {
+  return new Promise((resolve, reject) => {
+    cors(req, res, (result) => {
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res);
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
