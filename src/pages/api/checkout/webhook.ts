@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import redis, { connectRedis } from '@/lib/redis';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -6,11 +7,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    await connectRedis(); // Conecta ao Redis
+
     const webhookData = req.body;
+    const eventId = `event:${webhookData.id}`;
 
-    console.log('🔔 Webhook recebido do Pagar.me:', webhookData);
+    // Armazena os dados do webhook no Redis
+    await redis.set(eventId, JSON.stringify(webhookData), { EX: 3600 }); 
 
-    return res.status(200).json({ message: 'Webhook recebido com sucesso' });
+    console.log('🔔 Webhook recebido e salvo no Redis:', webhookData);
+
+    return res.status(200).json({ message: 'Webhook recebido e salvo com sucesso!' });
   } catch (error) {
     console.error('❌ Erro ao processar webhook:', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
