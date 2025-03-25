@@ -20,7 +20,6 @@ const runMiddleware = (req: NextApiRequest, res: NextApiResponse) => {
   });
 };
 
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res);
 
@@ -31,26 +30,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectRedis();
 
-  
     const filterId = req.query.id as string | undefined;
-
     const keys = await redis.keys('event:*');
 
     if (keys.length === 0) {
-      return res.status(200).json({ message: 'Nenhuma atualização recente.' });
+      return res.status(200).json({ updates: [] });
     }
 
-// aqui o getpayment 
-    const events = await Promise.all(keys.map((key) => redis.get(key)));
+    const events = await Promise.all(
+      keys.map(async (key) => {
+        const data = await redis.get(key);
+        return data ? JSON.parse(data) : null;
+      })
+    );
 
-    const filteredEvents = events
-      .map((event) => JSON.parse(event!))
-      .filter((event: any) => {
-        if (filterId) {
-          return event.data.id === filterId;
-        }
-        return true; 
-      });
+    // **Achatar os eventos** para evitar problemas com arrays aninhados
+    const flattenedEvents = events.flatMap((event) => 
+      event?.updates ? event.updates : event
+    );
+
+    // Log para depuração
+    console.log('🔍 Eventos processados:', JSON.stringify(flattenedEvents, null, 2));
+
+    const filteredEvents = flattenedEvents.filter((event) => {
+      if (!event?.data?.id) return false; // Garante que o evento tem a estrutura correta
+      return filterId ? event.data.id === filterId : true;
+    });
 
     return res.status(200).json({ updates: filteredEvents });
   } catch (error) {
