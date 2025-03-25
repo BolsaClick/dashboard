@@ -34,6 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const limitNumber = parseInt(limit as string, 10);
 
       let courses;
+
+      // Se um courseId for informado, verificamos se ele existe no banco
       if (courseId) {
         courses = await prisma.course.findMany({
           where: { id: String(courseId) },
@@ -56,6 +58,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const apiResponses = await Promise.all(
         courses.map(async (course) => {
+          if (!course.courseIds || course.courseIds.length === 0) {
+            console.warn(`Nenhum ID de curso externo encontrado para ${course.name}`);
+            return null;
+          }
+
           const apiRequests = course.courseIds.flatMap((id) =>
             brands.map(async (brand) => {
               const urlPresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=${brand}&modality=Presencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
@@ -63,29 +70,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const urlSemipresencial = `https://api.consultoriaeducacao.app.br/offers/v3/showCaseFilter?brand=${brand}&modality=Semipresencial&city=${encodeURIComponent(queryCity)}&state=${encodeURIComponent(queryState)}&course=${id}&courseName=${course.name}&app=DC&size=8`;
 
               try {
-                const [presencialResponse, distanciaResponse, semipresencialResponse] = await Promise.all([
+                const responses = await Promise.allSettled([
                   axios.get(urlPresencial),
                   axios.get(urlDistancia),
                   axios.get(urlSemipresencial),
                 ]);
 
-                const courseData = {
+                const courseData: any = {
                   brand,
                   courseId: id,
                   courseName: course.name,
-                  presencial: presencialResponse.data,
-                  distancia: distanciaResponse.data,
-                  semipresencial: semipresencialResponse.data,
                 };
 
-                // Remover modalidades vazias
+                if (responses[0].status === "fulfilled") {
+                  courseData.presencial = responses[0].value.data;
+                }
+                if (responses[1].status === "fulfilled") {
+                  courseData.distancia = responses[1].value.data;
+                }
+                if (responses[2].status === "fulfilled") {
+                  courseData.semipresencial = responses[2].value.data;
+                }
+
+                // Remove modalidades vazias
                 Object.keys(courseData).forEach((key) => {
                   if (
-                    courseData[key as keyof typeof courseData] &&
-                    courseData[key as keyof typeof courseData].data &&
-                    courseData[key as keyof typeof courseData].data.length === 0
+                    courseData[key] &&
+                    courseData[key].data &&
+                    courseData[key].data.length === 0
                   ) {
-                    delete courseData[key as keyof typeof courseData];
+                    delete courseData[key];
                   }
                 });
 
@@ -101,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     brand,
                     courseId: id,
                     courseName: course.name,
-                    [modalidade]: courseData[modalidade as keyof typeof courseData] || null,
+                    [modalidade]: courseData[modalidade] || null,
                   };
                 }
 
