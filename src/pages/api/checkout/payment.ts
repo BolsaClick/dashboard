@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import Cors from 'cors'; 
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 
 
@@ -42,6 +43,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!apiKey) {
       return res.status(500).json({ success: false, message: 'API Key não configurada' });
     }
+
+    if (!process.env.FIXIE_URL) {
+      return res.status(500).json({ success: false, message: 'FIXIE_URL não configurado' });
+    }
+
+
+    const proxyAgent = new HttpsProxyAgent(process.env.FIXIE_URL);
+
     const response = await axios.post('https://api.pagar.me/core/v5/orders', {
       customer,
       items,
@@ -50,7 +59,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       headers: {
         Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
         'Content-Type': 'application/json'
-      }
+      },
+      httpsAgent: proxyAgent,
     });
 
     return res.status(200).json({ success: true, data: response.data });

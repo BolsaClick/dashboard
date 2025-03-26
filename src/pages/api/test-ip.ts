@@ -1,20 +1,20 @@
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { NextApiRequest, NextApiResponse } from 'next';
-
-
-
-const proxyAgent = process.env.FIXIE_URL
+const fixieUrlString = 'http://fixie:4XUwsVeZvVuwnPg@criterium.usefixie.com:80'
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    if (!process.env.FIXIE_URL) {
+    if (!fixieUrlString) {
       return res.status(500).json({ error: 'FIXIE_URL não configurado' });
     }
 
-    // Usando Axios para realizar a requisição via proxy
+    // Criando o agente proxy com a URL do FIXIE_URL
+    const proxyAgent = new HttpsProxyAgent(fixieUrlString);
+
+    // Realizando a requisição via proxy
     const response = await axios.get('https://api64.ipify.org?format=json', {
-      httpAgent: proxyAgent,  // Usando o agente de proxy com o Axios
+      httpsAgent: proxyAgent,  // Usando o agente de proxy com o Axios
     });
 
     return res.status(200).json({ ip: response.data.ip });
