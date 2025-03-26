@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { NextApiRequest, NextApiResponse } from 'next';
-const fixieUrlString = 'http://fixie:4XUwsVeZvVuwnPg@criterium.usefixie.com:80'
+const fixieUrlString =  process.env.FIXIE_URL;
+
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
