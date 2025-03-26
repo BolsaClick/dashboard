@@ -2,15 +2,16 @@ import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-
-
-const proxyAgent = process.env.FIXIE_URL ? new HttpsProxyAgent(process.env.FIXIE_URL) : undefined;
-
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    if (!process.env.FIXIE_URL) {
-      return res.status(500).json({ error: 'FIXIE_URL não configurado' });
+    const fixieUrl = process.env.FIXIE_URL;
+    
+    if (!fixieUrl) {
+      return res.status(500).json({ error: 'FIXIE_URL não configurado corretamente' });
     }
+
+    // Configurando o agente de proxy com a URL do Fixie
+    const proxyAgent = new HttpsProxyAgent(fixieUrl);
 
     // Usando Axios para realizar a requisição via proxy
     const response = await axios.get('https://api64.ipify.org?format=json', {
@@ -19,7 +20,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     return res.status(200).json({ ip: response.data.ip });
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao obter o IP' });
+    console.error('Erro ao obter o IP:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: 'Erro ao obter o IP', details: errorMessage });
   }
 };
 
