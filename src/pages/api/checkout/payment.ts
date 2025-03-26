@@ -39,17 +39,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = req.body;
     
     const apiKey = process.env.PAGARME_API_KEY;
+    const fixieUrlString = 'http://fixie:4XUwsVeZvVuwnPg@criterium.usefixie.com:80'
 
     if (!apiKey) {
       return res.status(500).json({ success: false, message: 'API Key não configurada' });
     }
 
-    if (!process.env.FIXIE_URL) {
+    if (!fixieUrlString) {
       return res.status(500).json({ success: false, message: 'FIXIE_URL não configurado' });
     }
 
 
-    const proxyAgent = new HttpsProxyAgent(process.env.FIXIE_URL);
+    const proxyAgent = new HttpsProxyAgent(fixieUrlString);
 
     const response = await axios.post('https://api.pagar.me/core/v5/orders', {
       customer,

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Verificando se a variável de ambiente FIXIE_URL está definida
-const fixieUrlString = process.env.FIXIE_URL;
+const fixieUrlString = 'http://fixie:4XUwsVeZvVuwnPg@criterium.usefixie.com:80'
 
 if (!fixieUrlString) {
   console.error('Erro: A variável de ambiente FIXIE_URL não está configurada corretamente.');
