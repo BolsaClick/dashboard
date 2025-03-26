@@ -4,7 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 
 
-const proxyAgent = process.env.FIXIE_URL ? new HttpsProxyAgent(process.env.FIXIE_URL) : undefined;
+const proxyAgent = process.env.FIXIE_URL
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
