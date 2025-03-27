@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       payments
     }, {
       headers: {
-        Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
         'Content-Type': 'application/json'
       },
       httpsAgent: proxyAgent,
@@ -66,9 +66,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true, data: response.data });
   } catch (error: any) {
+    console.log(error.response?.data || error.message)
     return res.status(500).json({
       success: false,
       error: error.response?.data || error.message
-    });
+    },
+  
+  );
   }
 }
