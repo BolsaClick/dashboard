@@ -46,6 +46,20 @@ model UserStudent {
   createdAt                   DateTime             @default(now())
   universities                University[]         @relation("StudentUniversities")
   PasswordResetToken          PasswordResetToken[]
+  Transaction                 Transaction[]
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user UserStudent @relation(fields: [userId], references: [id])
+
+  @@map("transactions") // Nome da tabela no banco de dados
 }
 
 model PasswordResetToken {
