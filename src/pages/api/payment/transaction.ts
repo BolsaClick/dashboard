@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await runMiddleware(req, res, cors);
 
   if (req.method === 'PATCH') {
-    const { transactionId } = req.body;  // Receber o ID da transação
+    const { transactionId } = req.body;  
 
     if (!transactionId) {
       return res.status(400).json({ error: 'O ID da transação é obrigatório.' });

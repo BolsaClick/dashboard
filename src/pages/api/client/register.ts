@@ -44,6 +44,7 @@ interface UserRegistrationData {
   universitySlugs: string[];
   courseId: string;
   courseName: string;
+  amount: number;  // Adicionando o campo amount aqui
 }
 
 // Função para enviar email de confirmação de cadastro
@@ -61,11 +62,11 @@ async function sendPasswordEmail(email: string, name: string, courseName: string
 }
 
 // Função para registrar uma transação
-async function createTransaction(userId: string) {
+async function createTransaction(userId: string, amount: number) {
   return await prisma.transaction.create({
     data: {
       userId,
-      amount: 0, // Defina o valor inicial da transação
+      amount, // Recebe o valor do payload
       status: 'pending', // Status inicial
     },
   });
@@ -92,15 +93,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whatsapp_optin,
       high_school_completion_year,
       universitySlugs,
-      courseId, 
-      courseName, 
+      courseId,
+      courseName,
+      amount,  // Recebendo o amount no corpo da requisição
     }: UserRegistrationData = req.body;
 
     try {
-      if (!name || !email || !cpf) {
+      // Validação dos campos obrigatórios
+      if (!name || !email || !cpf || amount === undefined) {
         return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
       }
 
+      // Verificar se o e-mail já está cadastrado
       const existingUser = await prisma.userStudent.findUnique({
         where: { email },
       });
@@ -109,9 +113,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'E-mail já cadastrado.' });
       }
 
+      // Gerar senha padrão ou utilizar a fornecida
       const finalPassword = password || generateDefaultPassword();
       const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
+      // Buscar as universidades com base nos slugs fornecidos
       const universities = await prisma.university.findMany({
         where: {
           slug: {
@@ -145,8 +151,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           phone,
           whatsapp_optin,
           high_school_completion_year,
-          courseId, 
-          courseName, 
+          courseId,
+          courseName,
           universities: {
             connect: universities.map((university) => ({ id: university.id })),
           },
@@ -156,12 +162,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      // Criar uma transação para o usuário
-      await createTransaction(user.id);
+      // Criar a transação com o valor de amount
+      await createTransaction(user.id, amount);
 
-      const token = uuidv4(); 
+      const token = uuidv4();
 
-      await sendPasswordEmail(email, name, courseName); 
+      // Enviar e-mail de confirmação
+      await sendPasswordEmail(email, name, courseName);
 
       return res.status(201).json({ message: 'Usuário registrado com sucesso!', user });
     } catch (error) {
