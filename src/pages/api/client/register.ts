@@ -1,12 +1,11 @@
-import transporter from '@/lib/mail';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid'; 
 import Cors from 'cors'; 
+import transporter from '@/lib/mail';
 import { createStudentEmail } from '@/emails/create-student-email';
 import { isValid, parseISO } from 'date-fns';
-
 
 const prisma = new PrismaClient();
 
@@ -15,7 +14,6 @@ const cors = Cors({
   origin: '*', 
   allowedHeaders: ['Content-Type'], 
 });
-
 
 const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
   new Promise((resolve, reject) => {
@@ -49,7 +47,7 @@ interface UserRegistrationData {
 }
 
 // Função para enviar email de confirmação de cadastro
-async function sendPasswordEmail(email: string, name: string,  courseName: string) {
+async function sendPasswordEmail(email: string, name: string, courseName: string) {
   const htmlTemplate = createStudentEmail(name, courseName);
 
   const mailOptions = {
@@ -62,8 +60,19 @@ async function sendPasswordEmail(email: string, name: string,  courseName: strin
   await transporter.sendMail(mailOptions);
 }
 
+// Função para registrar uma transação
+async function createTransaction(userId: string) {
+  return await prisma.transaction.create({
+    data: {
+      userId,
+      amount: 0, // Defina o valor inicial da transação
+      status: 'pending', // Status inicial
+    },
+  });
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await runMiddleware(req, res, cors); 
+  await runMiddleware(req, res, cors);
 
   if (req.method === 'POST') {
     const {
@@ -92,7 +101,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
       }
 
-     
       const existingUser = await prisma.userStudent.findUnique({
         where: { email },
       });
@@ -119,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Nenhuma universidade encontrada com os slugs fornecidos.' });
       }
 
-   
+      // Criar o usuário
       const user = await prisma.userStudent.create({
         data: {
           name,
@@ -148,10 +156,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
+      // Criar uma transação para o usuário
+      await createTransaction(user.id);
+
       const token = uuidv4(); 
 
-      await sendPasswordEmail(email,  name,  courseName); 
-   
+      await sendPasswordEmail(email, name, courseName); 
 
       return res.status(201).json({ message: 'Usuário registrado com sucesso!', user });
     } catch (error) {

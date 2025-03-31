@@ -5,9 +5,6 @@ import axios from 'axios';
 import Cors from 'cors'; 
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
-
-
-
 const cors = Cors({
   methods: ['POST', 'OPTIONS'], 
   origin: '*', 
