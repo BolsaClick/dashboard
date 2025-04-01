@@ -43,9 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Verificar se a transação já foi paga
-      if (transaction.status === 'paid') {
-        return res.status(400).json({ error: 'A transação já foi paga.' });
-      }
+   
 
       // Atualizar o status da transação para "paid"
       const updatedTransaction = await prisma.transaction.update({
