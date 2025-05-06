@@ -24,6 +24,12 @@ model Course {
   courseIds String[]
 }
 
+model CoursePos {
+  id        String   @id @default(uuid())
+  name      String
+  courseIds String[]
+}
+
 model UserStudent {
   id                          String               @id @default(uuid())
   name                        String
