@@ -20,7 +20,7 @@ model UserAdmin {
 
 model Course {
   id        String   @id @default(uuid())
-  name      String
+  name      String   @unique
   courseIds String[]
 }
 
