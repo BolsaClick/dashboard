@@ -1,81 +1,87 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import sgMail from '@sendgrid/mail';
-import Cors from 'cors'; 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+import type { NextApiRequest, NextApiResponse } from 'next'
+import Cors from 'cors'
+import axios from 'axios'
 
-
-
+// Configura CORS
 const cors = Cors({
-  methods: ['POST', 'OPTIONS'], 
-  origin: '*', 
-  allowedHeaders: ['Content-Type'], 
-});
+  methods: ['POST', 'OPTIONS'],
+  origin: '*',
+  allowedHeaders: ['Content-Type'],
+})
 
 const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
   new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
+      if (result instanceof Error) return reject(result)
+      return resolve(result)
+    })
+  })
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors)
 
-  await runMiddleware(req, res, cors); 
-  if (req.method === 'POST') {
-    const { email, firstName, city, state, courseId, courseName, brand, modality, unitId, cpf, phone, name, offerId, typeCourse, channel, cep, paid } = req.body;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método não permitido' })
+  }
 
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail é obrigatório' });
-    }
+  const {
+    email,
+    firstName,
+    city,
+    state,
+    courseId,
+    courseName,
+    brand,
+    modality,
+    unitId,
+    cpf,
+    phone,
+    name,
+    offerId,
+    typeCourse,
+    channel,
+    cep,
+    paid,
+  } = req.body
 
-    const data = {
-      list_ids: ['157f46de-0019-47d0-97df-e27014b8868c'], 
-      contacts: [
-        {
-          email:  email,
-          first_name: firstName,
-          city: city,
-          state_province_region: state,
-          postal_code: cep,
-          phone_number_id: phone,
-          custom_fields: {
-            c_id: courseId,
-            c_name: courseName,
-            brand: brand,
-            modality: modality,
-            unitId: unitId,
-            offerId: offerId,
-            typeCourse: typeCourse,
-            cpf: cpf,
-            channel: channel,
-            paid: paid
-          }
-        }
-      ]
-    };
+  if (!email) {
+    return res.status(400).json({ error: 'E-mail é obrigatório' })
+  }
 
-    try {
-      const response = await fetch('https://api.sendgrid.com/v3/marketing/contacts', {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
-          'Content-Type': 'application/json'
+  try {
+    const response = await axios.post(
+      'https://api.hubapi.com/crm/v3/objects/contacts',
+      {
+        properties: {
+          email,
+          firstname: firstName || name,
+          phone,
+          city,
+          state,
+          cep,
+          cpf,
+          brand,
+          modality,
+          course_id: courseId,
+          course_name: courseName,
+          unit_id: unitId,
+          offer_id: offerId,
+          type_course: typeCourse,
+          channel,
+          paid_status: paid,
         },
-        body: JSON.stringify(data)
-      });
-
-      if (response.ok) {
-        res.status(200).json({ message: 'Lead cadastrado com sucesso!' });
-      } else {
-        const errorData = await response.json();
-        res.status(response.status).json({ error: errorData });
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
       }
-    } catch (error: any) {
-      res.status(500).json({ error: 'Erro ao cadastrar lead no SendGrid' });
-    }
-  } else {
-    res.status(405).json({ error: 'Método não permitido' });
+    )
+
+    return res.status(200).json({ message: 'Lead cadastrado com sucesso!', data: response.data })
+  } catch (error: any) {
+    const hubspotError = error.response?.data || error.message
+    return res.status(500).json({ error: 'Erro ao cadastrar lead no HubSpot', details: hubspotError })
   }
 }
