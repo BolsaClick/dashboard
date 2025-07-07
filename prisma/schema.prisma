@@ -53,6 +53,7 @@ model UserStudent {
   universities                University[]         @relation("StudentUniversities")
   PasswordResetToken          PasswordResetToken[]
   Transaction                 Transaction[]
+  hubspotContactId            String?
 }
 
 model Transaction {
