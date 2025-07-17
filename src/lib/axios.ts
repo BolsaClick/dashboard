@@ -34,3 +34,10 @@ export const api = axios.create({
     },
   },
 });
+export const cogna = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_COGNA_URL,
+  headers: {
+    Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`,
+    'Content-Type': 'application/json',
+  },
+})
