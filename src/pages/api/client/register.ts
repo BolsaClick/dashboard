@@ -127,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         password: hashedPassword,
         cpf,
         document,
-        birthday: new Date(birthday),
+        birthday,
         address,
         address_number,
         neighborhood,
