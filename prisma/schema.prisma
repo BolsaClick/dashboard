@@ -37,7 +37,7 @@ model UserStudent {
   password                    String
   cpf                         String               @unique
   document                    String?
-  birthday                    DateTime
+  birthday                    String?
   address                     String?
   address_number              String?
   neighborhood                String?

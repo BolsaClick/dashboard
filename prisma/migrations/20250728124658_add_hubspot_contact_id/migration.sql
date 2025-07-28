@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "UserStudent" ALTER COLUMN "birthday" DROP NOT NULL,
+ALTER COLUMN "birthday" SET DATA TYPE TEXT;
