@@ -1,10 +1,6 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 import { NextApiRequest, NextApiResponse } from 'next'
 import Cors from 'cors'
-import { sendLeadToHubspot, HubspotLeadPayload } from '@/lib/hubspot'
-
-const prisma = new PrismaClient()
+import { sendLeadToHubspot } from '@/lib/hubspot'
 
 const cors = Cors({
   methods: ['POST', 'OPTIONS'],
@@ -31,53 +27,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const {
       name,
       email,
-      password,
       cpf,
-      document,
-      birthday,
-      address,
-      address_number,
-      neighborhood,
       city,
       state,
-      postal_code,
-      phone,
-      whatsapp_optin,
-      high_school_completion_year,
-      universitySlugs,
       courseId,
       courseName,
-      amount,
       brand,
       modality,
       unitId,
+      phone,
       offerId,
       typeCourse,
+      postal_code,
       channel,
     } = req.body
 
-    if (!name || !email || !cpf || amount === undefined) {
+    if (!name || !email || !cpf) {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes.' })
     }
 
-    const universities = await prisma.university.findMany({
-      where: { slug: { in: universitySlugs } },
-      select: { id: true },
-    })
-
-    if (universities.length === 0) {
-      return res.status(404).json({ error: 'Universidade não encontrada.' })
-    }
-
-    // 🔍 Verifica se já existe o usuário
-    const existingUser = await prisma.userStudent.findFirst({
-      where: {
-        OR: [{ email }, { cpf }],
-      },
-      include: { universities: true },
-    })
-
-    // 🔁 Envia os dados para o HubSpot (mesmo se já existir o usuário)
     const hubspotId = await sendLeadToHubspot({
       email,
       cpf,
@@ -98,78 +66,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       channel,
     })
 
-    if (existingUser) {
-      // Cria nova transação para o usuário já existente
-      const transaction = await prisma.transaction.create({
-        data: {
-          userId: existingUser.id,
-          amount,
-          status: 'pending',
-        },
-      })
-
-      return res.status(200).json({
-        message: 'Usuário já existente. Transação criada.',
-        user: existingUser,
-        transaction,
-      })
-    }
-
-    // 🔐 Criptografa senha (ou gera padrão)
-    const finalPassword = password || generateDefaultPassword()
-    const hashedPassword = await bcrypt.hash(finalPassword, 10)
-
-    // 🧑‍🎓 Cria novo usuário
-    const newUser = await prisma.userStudent.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        cpf,
-        document,
-        birthday,
-        address,
-        address_number,
-        neighborhood,
-        city,
-        state,
-        postal_code,
-        phone,
-        whatsapp_optin,
-        high_school_completion_year,
-        courseId,
-        courseName,
-        hubspotContactId: hubspotId,
-        universities: {
-          connect: universities.map((u) => ({ id: u.id })),
-        },
-      },
-      include: { universities: true },
-    })
-
-    // 💸 Cria transação
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: newUser.id,
-        amount,
-        status: 'pending',
-      },
-    })
-
     return res.status(200).json({
-      message: 'Usuário e lead criados com sucesso!',
-      user: newUser,
-      transaction,
+      message: 'Lead enviado para o HubSpot com sucesso!',
+      hubspotId,
     })
   } catch (error: any) {
-    console.error('Erro ao registrar usuário:', error)
-    return res.status(500).json({ error: 'Erro no registro.' })
+    console.error('Erro ao enviar lead:', error)
+    return res.status(500).json({ error: 'Erro ao enviar lead.' })
   }
-}
-
-function generateDefaultPassword(length = 10): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  return Array.from({ length })
-    .map(() => characters.charAt(Math.floor(Math.random() * characters.length)))
-    .join('')
 }
