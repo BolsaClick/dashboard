@@ -23,6 +23,7 @@
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.0",
     "@sendgrid/mail": "^8.1.4",
+    "abacatepay-nodejs-sdk": "^1.4.1",
     "asaas": "^1.0.13",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
