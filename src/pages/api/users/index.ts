@@ -1,9 +1,29 @@
 // pages/api/users/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
+import Cors from 'cors'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcrypt' // opcional: instale bcrypt se quiser hashear senhas
+import bcrypt from 'bcrypt' // opcional: instalar bcrypt para hash de senhas
+
+// Inicializa CORS para permitir todas origens
+const cors = Cors({
+  methods: ['POST', 'OPTIONS'],
+  origin: '*', // libera qualquer origem (CUIDADO: produção, defina o domínio permitido)
+})
+
+// Helper para rodar middleware em Next.js
+function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: any) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) return reject(result)
+      return resolve(result)
+    })
+  })
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // roda CORS
+  await runMiddleware(req, res, cors)
+
   if (req.method !== 'POST') return res.status(405).end()
 
   const { name, email, password, cpf, ...rest } = req.body
@@ -27,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ existed: true, reason: 'email', userId: byEmail.id })
     }
 
-    // 2) hash da senha (recomendado) - opcional, descomente se instalar bcrypt
+    // 2) hash da senha (recomendado)
     // const saltRounds = 10
     // const hashedPassword = await bcrypt.hash(password, saltRounds)
 
@@ -46,10 +66,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error: any) {
     // 3) proteção contra condição de corrida (P2002: unique constraint)
     if (error?.code === 'P2002') {
-      // identifica qual campo causou o erro (meta.target pode existir)
       const target = Array.isArray(error?.meta?.target) ? error.meta.target[0] : null
 
-      // tenta buscar o usuário pelo CPF/email novamente (caso tenha sido criado por outro request)
       try {
         if (target === 'cpf') {
           const u = await prisma.userStudent.findUnique({ where: { cpf } })
@@ -58,7 +76,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const u = await prisma.userStudent.findUnique({ where: { email } })
           if (u) return res.status(200).json({ existed: true, reason: 'email', userId: u.id })
         } else {
-          // fallback: tentar encontrar por cpf ou email
           const uCpf = await prisma.userStudent.findUnique({ where: { cpf } })
           if (uCpf) return res.status(200).json({ existed: true, reason: 'cpf', userId: uCpf.id })
           const uEmail = await prisma.userStudent.findUnique({ where: { email } })
