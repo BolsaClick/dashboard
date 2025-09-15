@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Cors from 'cors'
-import { sendLeadToHubspot } from '@/lib/hubspot'
 
+// Secret (use env em produção)
 const ABACATE_SECRET = process.env.ABACATE_WEBHOOK_SECRET || '@Murilo2016'
 
-// Configuração CORS
+// CORS (para Postman/dev)
 const cors = Cors({
   methods: ['POST', 'OPTIONS'],
   origin: '*',
@@ -19,20 +19,26 @@ const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
     })
   })
 
+// store simples em memória (somente para dev/testing)
+const webhookStore: { id: string; receivedAt: string; payload: any; summary: any }[] = []
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors)
 
-  if (req.method === 'OPTIONS') return res.status(200).end()
+  // quick debug logs
+  console.log('[ABACATE_WEBHOOK] incoming method=', req.method)
 
+  if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' })
   }
 
+  // validar secret via header(s) ou query param (dev)
   const receivedSecret =
-    req.headers['x-abacatepay-secret'] ||
-    req.headers['X-Abacatepay-Secret'] ||
-    req.headers['x-webhook-secret'] ||
-    req.query.webhookSecret
+    (req.headers['x-abacatepay-secret'] as string) ||
+    (req.headers['X-Abacatepay-Secret'] as string) ||
+    (req.headers['x-webhook-secret'] as string) ||
+    (req.query.webhookSecret as string)
 
   if (receivedSecret !== ABACATE_SECRET) {
     console.warn('[ABACATE_WEBHOOK] Secret inválido:', receivedSecret)
@@ -40,15 +46,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const payload = req.body
-    const { event, data } = payload
+    const payload = req.body // Next.js já faz o parsing JSON por padrão
+    console.log('[ABACATE_WEBHOOK] payload recebido (summary):', {
+      event: payload?.event,
+      id: payload?.data?.id ?? payload?.data?.pixQrCode?.id,
+    })
 
-    if (event !== 'billing.paid') {
-      console.log(`[ABACATE_WEBHOOK] Evento ignorado: ${event}`)
-      return res.status(200).json({ received: true, ignored: true })
-    }
+    const event: string | undefined = payload?.event
+    const data: any = payload?.data ?? {}
 
-    // Extrair status de locais possíveis
+    // extrair status / transaction id / amount / metadata com fallbacks
+    const transactionId =
+      data?.pixQrCode?.id ?? data?.payment?.id ?? data?.transaction?.id ?? data?.id ?? null
+
     const rawStatus =
       data?.pixQrCode?.status ??
       data?.payment?.status ??
@@ -58,15 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const status = rawStatus ? String(rawStatus).toUpperCase() : null
 
-    // Só processa se for pago
-    const isPaid = status === 'PAID' || status === 'COMPLETE' || status === 'CONFIRMED'
+    const amount =
+      data?.payment?.amount ?? data?.pixQrCode?.amount ?? data?.transaction?.amount ?? null
 
-    if (!isPaid) {
-      console.log('[ABACATE_WEBHOOK] Status recebido mas não é pago ->', status)
-      return res.status(200).json({ received: true, ignored: true, status })
-    }
-
-    // Extrair metadata
     const metadata =
       data?.pixQrCode?.metadata ??
       data?.payment?.metadata ??
@@ -74,44 +78,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data?.metadata ??
       {}
 
-    if (!metadata?.userId || !metadata?.planId) {
-      console.error('[ABACATE_WEBHOOK] Metadata ausente ou inválida:', metadata)
-      return res.status(400).send('Metadata ausente')
+    const summary = {
+      event,
+      transactionId,
+      status,
+      amount,
+      metadata,
     }
 
-    // Extrair valor (centavos)
-    const amount =
-      data?.payment?.amount ??
-      data?.pixQrCode?.amount ??
-      data?.transaction?.amount ??
-      null
-
-    // ✅ Só chama HubSpot se for pago
-    const hubspotId = await sendLeadToHubspot({
-      email: metadata.email,
-      cpf: metadata.taxId,
-      city: metadata.city || '',
-      state: metadata.state || '',
-      courseId: metadata.planId,
-      courseName: metadata.courseName || '',
-      brand: metadata.brand || '',
-      modality: metadata.modality || '',
-      unitId: metadata.unitId || '',
-      phone: metadata.cellphone,
-      name: metadata.name,
-      firstName: metadata.name,
-      offerId: metadata.offerId || '',
-      typeCourse: metadata.typeCourse || '',
-      paid: status || 'PAID',
-      cep: metadata.postal_code || '',
-      channel: metadata.channel || '',
+    // armazena em memória para inspecionar via logs / REPL (dev only)
+    webhookStore.push({
+      id: transactionId ?? `no-id-${Date.now()}`,
+      receivedAt: new Date().toISOString(),
+      payload,
+      summary,
     })
 
-    console.log(`[ABACATE_WEBHOOK] Lead atualizado no HubSpot: ${hubspotId}`)
+    console.log('[ABACATE_WEBHOOK] resumo:', JSON.stringify(summary, null, 2))
 
-    return res.status(200).json({ ok: true, hubspotId })
-  } catch (error: any) {
-    console.error('[ABACATE_WEBHOOK_ERROR]', error)
+    // Opcional: se quiser tratar apenas billing.paid como "confirmado", checar event
+    // if (event === 'billing.paid') { ... }
+
+    // responder rápido com resumo
+    return res.status(200).json({ received: true, summary })
+  } catch (err: any) {
+    console.error('[ABACATE_WEBHOOK_ERROR]', err)
     return res.status(500).send('Erro interno')
   }
 }
