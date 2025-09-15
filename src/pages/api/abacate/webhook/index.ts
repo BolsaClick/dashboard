@@ -1,16 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Cors from 'cors'
 
-// Secret (use env em produção)
+// Secret do AbacatePay (use variável de ambiente em produção)
 const ABACATE_SECRET = process.env.ABACATE_WEBHOOK_SECRET || '@Murilo2016'
 
-// CORS (para Postman/dev)
+// Configuração do CORS
 const cors = Cors({
   methods: ['POST', 'OPTIONS'],
-  origin: '*',
+  origin: '*', // libera para qualquer origem
   allowedHeaders: ['Content-Type', 'x-abacatepay-secret'],
 })
 
+// Helper para rodar o middleware
 const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
   new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
@@ -19,25 +20,20 @@ const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
     })
   })
 
-// store simples em memória (somente para dev/testing)
-const webhookStore: { id: string; receivedAt: string; payload: any; summary: any }[] = []
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await runMiddleware(req, res, cors)
 
-  // quick debug logs
-  console.log('[ABACATE_WEBHOOK] incoming method=', req.method)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
 
-  if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' })
   }
 
-  // validar secret via header(s) ou query param (dev)
+  // validar secret vindo do header ou query
   const receivedSecret =
     (req.headers['x-abacatepay-secret'] as string) ||
-    (req.headers['X-Abacatepay-Secret'] as string) ||
-    (req.headers['x-webhook-secret'] as string) ||
     (req.query.webhookSecret as string)
 
   if (receivedSecret !== ABACATE_SECRET) {
@@ -46,61 +42,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const payload = req.body // Next.js já faz o parsing JSON por padrão
-    console.log('[ABACATE_WEBHOOK] payload recebido (summary):', {
-      event: payload?.event,
-      id: payload?.data?.id ?? payload?.data?.pixQrCode?.id,
-    })
+    const payload = req.body
 
-    const event: string | undefined = payload?.event
-    const data: any = payload?.data ?? {}
+    console.log('[ABACATE_WEBHOOK] payload recebido:', payload)
 
-    // extrair status / transaction id / amount / metadata com fallbacks
-    const transactionId =
-      data?.pixQrCode?.id ?? data?.payment?.id ?? data?.transaction?.id ?? data?.id ?? null
-
-    const rawStatus =
-      data?.pixQrCode?.status ??
-      data?.payment?.status ??
-      data?.transaction?.status ??
-      data?.status ??
-      null
-
-    const status = rawStatus ? String(rawStatus).toUpperCase() : null
-
-    const amount =
-      data?.payment?.amount ?? data?.pixQrCode?.amount ?? data?.transaction?.amount ?? null
-
-    const metadata =
-      data?.pixQrCode?.metadata ??
-      data?.payment?.metadata ??
-      data?.transaction?.metadata ??
-      data?.metadata ??
-      {}
-
-    const summary = {
-      event,
-      transactionId,
-      status,
-      amount,
-      metadata,
+    // Exemplo: quando um Pix QR Code é lançado (event = pix.qr_code.created)
+    if (payload?.event === 'pix.qr_code.created') {
+      console.log('[ABACATE_WEBHOOK] Novo Pix QR Code criado:', payload.data)
     }
 
-    // armazena em memória para inspecionar via logs / REPL (dev only)
-    webhookStore.push({
-      id: transactionId ?? `no-id-${Date.now()}`,
-      receivedAt: new Date().toISOString(),
-      payload,
-      summary,
-    })
+    // Exemplo: quando um pagamento é confirmado (event = billing.paid)
+    if (payload?.event === 'billing.paid') {
+      console.log('[ABACATE_WEBHOOK] Pagamento confirmado:', payload.data)
+    }
 
-    console.log('[ABACATE_WEBHOOK] resumo:', JSON.stringify(summary, null, 2))
-
-    // Opcional: se quiser tratar apenas billing.paid como "confirmado", checar event
-    // if (event === 'billing.paid') { ... }
-
-    // responder rápido com resumo
-    return res.status(200).json({ received: true, summary })
+    return res.status(200).json({ received: true, event: payload?.event })
   } catch (err: any) {
     console.error('[ABACATE_WEBHOOK_ERROR]', err)
     return res.status(500).send('Erro interno')
