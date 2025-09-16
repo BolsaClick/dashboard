@@ -1,112 +1,58 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import Cors from 'cors'
-import { prisma } from '@/lib/prisma' 
+// pages/api/abacate/webhook/index.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
 
-const ABACATE_SECRET = process.env.ABACATE_WEBHOOK_SECRET || '@Murilo2016'
-
-const cors = Cors({
-  methods: ['POST', 'OPTIONS'],
-  origin: '*',
-  allowedHeaders: ['Content-Type', 'x-abacatepay-secret'],
-})
-
-const runMiddleware = (req: NextApiRequest, res: NextApiResponse, fn: any) =>
-  new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) return reject(result)
-      return resolve(result)
-    })
-  })
+const ABACATE_SECRET = process.env.WEBHOOK_SECRET || "@Murilo2016";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await runMiddleware(req, res, cors)
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido' })
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // validar secret vindo do header ou query
+  // validar secret via query ou header
   const receivedSecret =
-    (req.headers['x-abacatepay-secret'] as string) ||
-    (req.query.webhookSecret as string)
-
+    (req.headers["x-abacatepay-secret"] as string) || req.query.webhookSecret;
   if (receivedSecret !== ABACATE_SECRET) {
-    console.warn('[ABACATE_WEBHOOK] Secret inválido:', receivedSecret)
-    return res.status(401).send('Unauthorized')
+    console.warn("[WEBHOOK] Secret inválido:", receivedSecret);
+    return res.status(401).json({ error: "Invalid webhook secret" });
   }
 
   try {
-    const payload = req.body
-    const event = payload?.event ?? null
-    const data = payload?.data ?? {}
+    const payload = req.body;
+    const event = payload?.event;
+    const data = payload?.data;
 
-    // Tenta extrair transactionId de vários locais possíveis do payload
-    const transactionId =
-      data?.pixQrCode?.metadata?.transactionId ??
-      data?.payment?.metadata?.transactionId ??
-      data?.transaction?.metadata?.transactionId ??
-      data?.metadata?.transactionId ??
-      data?.pixQrCode?.metadata?.transaction_id ??
-      data?.pixQrCode?.id ??
-      data?.id ??
-      null
+    console.log("[ABACATEPAY WEBHOOK RECEIVED]", JSON.stringify(payload, null, 2));
 
-    // status/vindos do provider (ex: "PAID", "PENDING")
-    const rawStatus =
-      data?.pixQrCode?.status ??
-      data?.payment?.status ??
-      data?.transaction?.status ??
-      data?.status ??
-      null
-    const providerStatus = rawStatus ? String(rawStatus).toUpperCase() : null
+    // Só processamos billing.paid
+    if (event !== "billing.paid") {
+      return res.status(200).json({ received: true, ignored: true });
+    }
 
-    console.log('[ABACATE_WEBHOOK] event=', event, 'transactionId=', transactionId, 'providerStatus=', providerStatus)
+    // Extrair transactionId e status
+    const pixQrCode = data?.pixQrCode;
+    const transactionId = pixQrCode?.metadata?.transactionId;
+    const status = pixQrCode?.status?.toUpperCase();
 
-    // Se não tem transactionId: ack e log (não retorna erro para evitar retries automáticos)
     if (!transactionId) {
-      console.warn('[ABACATE_WEBHOOK] transactionId não encontrado no payload. Payload:', JSON.stringify(payload))
-      return res.status(200).json({ received: true, found: false, message: 'no transactionId in payload' })
+      console.error("[WEBHOOK] transactionId ausente");
+      return res.status(400).json({ error: "transactionId ausente" });
     }
 
-    // Buscar transação no banco
-    const trx = await prisma.transaction.findUnique({ where: { id: String(transactionId) } })
-    if (!trx) {
-      console.warn(`[ABACATE_WEBHOOK] transação não encontrada id=${transactionId}`)
-      // ack para o provider, mas deixar log para investigação
-      return res.status(200).json({ received: true, found: false })
+    if (status === "PAID") {
+      // Atualiza a transação no banco
+      const trx = await prisma.transaction.update({
+        where: { id: transactionId },
+        data: { status: "paid" },
+      });
+      console.log(`[WEBHOOK] Transação atualizada para paid: ${trx.id}`);
+      return res.status(200).json({ received: true, updated: true, transactionId: trx.id });
     }
 
-    // Idempotência: se já estiver paid, apenas ack
-    if (trx.status === 'paid') {
-      console.log(`[ABACATE_WEBHOOK] transação já em paid id=${transactionId}`)
-      return res.status(200).json({ received: true, found: true, alreadyPaid: true })
-    }
-
-    // Condição para marcar como pago:
-    // - evento específico do provider: billing.paid
-    // - ou providerStatus igual a 'PAID'
-    if (event === 'billing.paid' || providerStatus === 'PAID') {
-      await prisma.transaction.update({
-        where: { id: String(transactionId) },
-        data: { status: 'paid' },
-      })
-
-      console.log(`[ABACATE_WEBHOOK] transação atualizada para paid id=${transactionId}`)
-
-      // Opcional: aqui você pode disparar outras ações (enviar email, criar matrícula, etc.)
-
-      return res.status(200).json({ received: true, found: true, updated: true })
-    }
-
-    // Caso o evento não represente pagamento finalizado
-    console.log('[ABACATE_WEBHOOK] evento recebido, mas não é pagamento confirmado — nenhuma alteração feita')
-    return res.status(200).json({ received: true, found: true, updated: false, event })
+    console.log(`[WEBHOOK] Evento recebido, mas status não é PAID: ${status}`);
+    return res.status(200).json({ received: true, updated: false, status });
   } catch (err: any) {
-    console.error('[ABACATE_WEBHOOK_ERROR]', err)
-    // Retorna 500 caso ocorra erro interno (provider pode retryar)
-    return res.status(500).json({ error: 'Erro interno', details: err?.message ?? String(err) })
+    console.error("[WEBHOOK_ERROR]", err);
+    return res.status(500).json({ error: "Internal server error", details: err?.message ?? err });
   }
 }
