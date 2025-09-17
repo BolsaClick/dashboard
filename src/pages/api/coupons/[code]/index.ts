@@ -19,38 +19,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { code } = req.query;
-    const { amountInCents } = req.body; // 💰 trabalhar sempre em centavos!
+    const { amountInCents } = req.body;
 
     if (!amountInCents) {
       return res.status(400).json({ error: "É necessário enviar amountInCents" });
     }
 
     const coupon = await prisma.coupon.findUnique({
-      where: { code: String(code) },
+      where: { code: String(code).toUpperCase() },
     });
 
-    if (!coupon) return res.status(404).json({ error: "Cupom não encontrado" });
-    if (coupon.validUntil && new Date() > coupon.validUntil) {
-      return res.status(400).json({ error: "Cupom expirado" });
-    }
-    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-      return res.status(400).json({ error: "Limite de usos atingido" });
+    if (!coupon) {
+      return res.status(404).json({ error: "Cupom não encontrado" });
     }
 
+    if (coupon.validUntil && new Date() > coupon.validUntil) {
+      return res.status(400).json({ error: "Cupom expirado", expiresAt: coupon.validUntil });
+    }
+
+    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+      return res.status(400).json({
+        error: "Limite de usos atingido",
+        maxUses: coupon.maxUses,
+        usedCount: coupon.usedCount,
+      });
+    }
+
+    // 🔹 Calcula apenas para RETORNO ao front
     let finalAmount = amountInCents;
+
     if (coupon.type === "PERCENT") {
+      // desconto percentual → já salvo direto (10 significa 10%)
       finalAmount = amountInCents - Math.floor(amountInCents * (coupon.discount / 100));
     } else if (coupon.type === "FIXED") {
-      finalAmount = Math.max(0, amountInCents - coupon.discount); // FIXED já em centavos
+      // desconto fixo → valor em centavos
+      finalAmount = Math.max(0, amountInCents - coupon.discount);
     }
 
     return res.status(200).json({
+      valid: true,
       coupon: coupon.code,
+      type: coupon.type,
       originalAmount: amountInCents,
       finalAmount,
       discountApplied: amountInCents - finalAmount,
+      expiresAt: coupon.validUntil,
+      maxUses: coupon.maxUses,
+      usedCount: coupon.usedCount,
     });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    console.error("Erro ao aplicar cupom:", error);
+    return res.status(500).json({ error: "Erro interno do servidor" });
   }
 }

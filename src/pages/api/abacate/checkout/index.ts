@@ -11,17 +11,18 @@ interface Customer {
 
 interface PixQrCodeRequest {
   // Aceita um dos dois:
-  amount?: number            // exemplo: 119  (R$119,00) - enviado ao provider
-  amountInCents?: number     // exemplo: 11900 (R$119,00) - será convertido
+  amount?: number            // exemplo: 119   (R$119,00) - enviado ao provider
+  amountInCents?: number     // exemplo: 11900 (R$119,00)
   description?: string
   expiresIn?: number
   customer: Customer
   userId: string
   planId: string
+  couponCode?: string        // 🔹 incluímos aqui
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS básico para facilitar testes
+  // CORS básico
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -39,13 +40,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const body = req.body as PixQrCodeRequest
-    const { amount: directAmount, amountInCents, description, expiresIn, customer, userId, planId } = body
+    const { amount: directAmount, amountInCents, description, expiresIn, customer, userId, planId, couponCode } = body
 
     if ((!directAmount && !amountInCents) || !customer || !userId || !planId) {
       return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes. Envie amount ou amountInCents, customer, userId e planId.' })
     }
 
-    // calcula valor a enviar para o provider (em reais, sem centavos)
+    // calcula valor a enviar para o provider (em reais)
     const amount = typeof amountInCents === 'number'
       ? amountInCents / 100
       : (directAmount as number)
@@ -59,21 +60,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' })
     }
-const amountInCentsFinal = typeof amountInCents === 'number'
-  ? amountInCents
-  : Math.round((directAmount as number) * 100)
-    // Cria transação pendente (salvando em reais)
-    const transaction = await prisma.transaction.create({
+
+    // Normaliza amount em centavos
+    const amountInCentsFinal = typeof amountInCents === 'number'
+      ? amountInCents
+      : Math.round((directAmount as number) * 100)
+
+    // Criar transação pendente
+    let transaction = await prisma.transaction.create({
       data: {
         userId,
-        amount: amountInCentsFinal, 
+        amount: amountInCentsFinal,
         status: 'pending',
+        couponId: null, // será preenchido se tiver couponCode
       },
     })
 
     console.log('[CREATE_PIX] transaction criada', { transactionId: transaction.id, amount, userId })
 
-    // Monta payload na forma que o provider espera (exemplo que você mostrou)
+    // 🔹 Se veio couponCode, vinculamos à transação mas NÃO incrementamos ainda
+    if (couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: couponCode.toUpperCase() },
+      })
+
+      if (!coupon) {
+        return res.status(404).json({ error: 'Cupom não encontrado' })
+      }
+
+      if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+        return res.status(400).json({ error: 'Limite de usos atingido' })
+      }
+
+      transaction = await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { couponId: coupon.id },
+      })
+
+      console.log('[CREATE_PIX] cupom vinculado à transaction', { couponCode, transactionId: transaction.id })
+    }
+
+    // Monta payload pro provider
     const providerPayload = {
       amount, // ex: 119
       description: description || `Matrícula - ${user.name}`,
@@ -84,21 +111,20 @@ const amountInCentsFinal = typeof amountInCents === 'number'
         cellphone: customer.cellphone,
         taxId: customer.taxId,
       },
-      // metadata com transactionId para posterior reconciliacao no webhook
       metadata: {
         transactionId: transaction.id,
         userId,
         planId,
+        couponCode: couponCode || null, // opcional pra rastrear também no provider
       },
     }
 
     console.log('[CREATE_PIX] payload para AbacatePay:', JSON.stringify(providerPayload, null, 2))
 
-    // Chama o SDK (ou, se preferir, axios direto para o endpoint do provider)
+    // Chamar SDK AbacatePay
     const billing = await abacate.pixQrCode.create(providerPayload as any)
 
     if (!billing) {
-      // marca transação como erro
       await prisma.transaction.update({ where: { id: transaction.id }, data: { status: 'error' } })
       console.error('[CREATE_PIX] resposta vazia do provider')
       return res.status(502).json({ error: 'Resposta vazia do provider' })
@@ -106,15 +132,13 @@ const amountInCentsFinal = typeof amountInCents === 'number'
 
     console.log('[CREATE_PIX] resposta do provider:', JSON.stringify(billing, null, 2))
 
-    // Retorna o billing (QR) e transactionId para o front
+    // Retornar QR Code e transactionId
     return res.status(200).json({
       pixQrCode: billing,
       transactionId: transaction.id,
     })
   } catch (err: any) {
     console.error('[CREATE_PIX] erro:', err)
-    // opcional: atualizar transação com status 'error' se transaction foi criada (safe-guard)
-    // NOTA: poderia verificar e atualizar, mas mantive simples aqui
     return res.status(500).json({ error: 'Erro interno do servidor', details: err?.message ?? err })
   }
 }
