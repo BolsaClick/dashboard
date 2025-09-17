@@ -59,12 +59,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' })
     }
-
+const amountInCentsFinal = typeof amountInCents === 'number'
+  ? amountInCents
+  : Math.round((directAmount as number) * 100)
     // Cria transação pendente (salvando em reais)
     const transaction = await prisma.transaction.create({
       data: {
         userId,
-        amount: amount, // por ex: 119.00
+        amount: amountInCentsFinal, 
         status: 'pending',
       },
     })
