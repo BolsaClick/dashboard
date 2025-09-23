@@ -8,6 +8,9 @@ const INSCRICAO_CLIENT_ID = process.env.INSCRICAO_CLIENT_ID || ''
 const INSCRICAO_CLIENT_SECRET = process.env.INSCRICAO_CLIENT_SECRET || ''
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || '*'
 
+// 👉 Novo: Webhook do Discord para notificações
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || ''
+
 let cachedToken: string | null = null
 let tokenExpiresAt: number | null = null
 let refreshingTokenPromise: Promise<string> | null = null
@@ -22,7 +25,10 @@ function setCorsHeaders(req: NextApiRequest, res: NextApiResponse) {
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Ocp-Apim-Subscription-key')
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type,Authorization,Ocp-Apim-Subscription-key'
+  )
 }
 
 async function fetchNewToken(): Promise<string> {
@@ -74,6 +80,43 @@ async function makeEnrollmentRequest(token: string, body: any) {
   })
 }
 
+// 👉 Função para notificar erros no Discord
+async function notifyDiscordError(error: any, body: any) {
+  if (!DISCORD_WEBHOOK_URL) return
+
+  // Serializa body com fallback
+  let payloadString: string
+  try {
+    payloadString = JSON.stringify(body, null, 2)
+  } catch {
+    payloadString = String(body)
+  }
+
+  // Evita mensagens muito longas no Discord (max ~2000 chars)
+  if (payloadString.length > 1800) {
+    payloadString = payloadString.slice(0, 1800) + "\n... (truncado)"
+  }
+
+  const errorMessage = {
+    content: `⚠️ **Erro na inscrição**
+**Mensagem:** ${error.message}
+**Status:** ${error.response?.status || 'N/A'}
+**Detalhes:** \`\`\`json
+${JSON.stringify(error.response?.data || {}, null, 2)}
+\`\`\`
+
+**Body enviado:** \`\`\`json
+${payloadString}
+\`\`\``
+  }
+
+  try {
+    await axios.post(DISCORD_WEBHOOK_URL, errorMessage)
+  } catch (notifyErr) {
+    console.error('Falha ao notificar Discord:', notifyErr)
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   setCorsHeaders(req, res)
 
@@ -111,6 +154,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error: any) {
     console.error('Erro na inscrição:', error.response?.data || error.message)
-    return res.status(500).json({ error: 'Erro ao processar inscrição', detail: error.response?.data || error.message })
+
+    // 🔔 Notificar erro no Discord
+    notifyDiscordError(error, body)
+
+    return res.status(500).json({
+      error: 'Erro ao processar inscrição',
+      detail: error.response?.data || error.message
+    })
   }
 }
