@@ -1,144 +1,223 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import AbacatePay from 'abacatepay-nodejs-sdk'
-import { prisma } from '@/lib/prisma' // ajuste conforme seu projeto
-
-interface Customer {
-  name: string
-  cellphone: string
-  email: string
-  taxId: string
-}
-
-interface PixQrCodeRequest {
-  // Aceita um dos dois:
-  amount?: number            // exemplo: 119   (R$119,00) - enviado ao provider
-  amountInCents?: number     // exemplo: 11900 (R$119,00)
-  description?: string
-  expiresIn?: number
-  customer: Customer
-  userId: string
-  planId: string
-  couponCode?: string        // 🔹 incluímos aqui
-}
+// pages/api/abacate/checkout.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import AbacatePay from "abacatepay-nodejs-sdk";
+import { prisma } from "@/lib/prisma";
+import { format } from "date-fns";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS básico
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const abacateKey = process.env.ABACATEPAY_API_KEY
+  const abacateKey = process.env.ABACATEPAY_API_KEY;
+  const promoterIdCogna = process.env.COGNA_PROMOTER_ID || "6716698cb4d33b0008a18001";
+
   if (!abacateKey) {
-    console.error('[CREATE_PIX] ABACATEPAY_API_KEY não configurada')
-    return res.status(500).json({ error: 'API key do AbacatePay não configurada' })
+    console.error("[CREATE_CHECKOUT] AbacatePay key missing");
+    return res.status(500).json({ error: "API key não configurada" });
   }
 
-  const abacate = AbacatePay(`${abacateKey}`)
+  const abacate = AbacatePay(`${abacateKey}`);
 
   try {
-    const body = req.body as PixQrCodeRequest
-    const { amount: directAmount, amountInCents, description, expiresIn, customer, userId, planId, couponCode } = body
+    const body = req.body;
+    const {
+      nome,
+      cpf,
+      rg,
+      dataNascimento,
+      email,
+      telefone,
+      endereco,
+      numero,
+      bairro,
+      cidade,
+      estado,
+      cep,
+      anoConclusao,
+      offerId,   // Cogna
+      idDMH,     // Kroton
+      brand,
+      degree,
+      type,
+      planId,
+      couponCode,
+      amountInCents,
+    } = body;
 
-    if ((!directAmount && !amountInCents) || !customer || !userId || !planId) {
-      return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes. Envie amount ou amountInCents, customer, userId e planId.' })
+    if (!nome || !cpf || !email || !telefone || !planId) {
+      return res.status(400).json({ error: "Campos obrigatórios ausentes" });
     }
 
-    // calcula valor a enviar para o provider (em reais)
-    const amount = typeof amountInCents === 'number'
-      ? amountInCents / 100
-      : (directAmount as number)
-
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'amount inválido' })
-    }
-
-    // Verifica usuário no banco
-    const user = await prisma.userStudent.findUnique({ where: { id: userId } })
+    // 🔹 1) Cria/valida usuário
+    let user = await prisma.userStudent.findUnique({ where: { cpf } });
     if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' })
+      user = await prisma.userStudent.create({
+        data: {
+          name: nome,
+          email,
+          cpf,
+          password: Math.random().toString(36).slice(-8),
+          phone: telefone,
+        },
+      });
     }
 
-    // Normaliza amount em centavos
-    const amountInCentsFinal = typeof amountInCents === 'number'
-      ? amountInCents
-      : Math.round((directAmount as number) * 100)
+    // 🔹 2) Formatando datas
+    const birthDateForCogna = dataNascimento ? format(new Date(dataNascimento), "dd/MM/yyyy") : null;
+    const birthDateForKroton = dataNascimento ? format(new Date(dataNascimento), "yyyy-MM-dd") : null;
 
-    // Criar transação pendente
+    // 🔹 3) Payload Cogna
+    const cognaPayload = {
+      dadosPessoais: {
+        nome,
+        cpf,
+        rg,
+        sexo: "M",
+        celular: telefone,
+        dataNascimento: birthDateForCogna,
+        email,
+        endereco: {
+          logradouro: endereco,
+          numero,
+          bairro,
+          cep,
+          uf: estado,
+          municipio: cidade,
+        },
+      },
+      inscricao: {
+        aceiteTermo: true,
+        anoConclusao: Number(anoConclusao),
+        enem: { isUsed: false },
+        receberEmail: true,
+        receberSMS: true,
+        receberWhatsApp: true,
+        courseOffer: {
+          offerId,
+          brand,
+          degree,
+          id: offerId,
+          type,
+        },
+      },
+      promoterId: promoterIdCogna,
+      idSalesChannel: 88, // 🔹 fixo para Cogna
+      canal: "web",
+    };
+
+    // 🔹 4) Payload Kroton
+    const athenasPayload = {
+      inscricao: {
+        enem: { utilizar: true, protocolo: "171" },
+        anoConclusao: Number(anoConclusao),
+        aceiteTermo: true,
+        aceitaReceberEmail: true,
+        aceitaReceberSMS: true,
+        aceitaReceberWhatsApp: true,
+        ofertas: { primeiraOpcao: { idDMH } },
+        canalVendas: { id: 98 }, // 🔹 fixo para Kroton
+        idTipoProva: 2,
+      },
+      dadosPessoais: {
+        nome,
+        cpf,
+        sexo: "M",
+        rg,
+        dataNascimento: birthDateForKroton,
+        email,
+        celular: telefone,
+        endereco: {
+          logradouro: endereco,
+          numero,
+          bairro,
+          cep,
+          uf: estado,
+          municipio: cidade,
+        },
+      },
+    };
+
+    const metadata = {
+      userId: user.id,
+      brand,
+      courseId: planId,
+      offerId,                 // Cogna
+      idDMH,                   // Kroton
+      promoterIdCogna,         // 🔹 sempre enviado
+      idSalesChannelCogna: 88,
+      idSalesChannelKroton: 98,
+      canal: "web",
+      cognaPayload,
+      athenasPayload,
+    };
+
+    // 🔹 5) Cria transação
     let transaction = await prisma.transaction.create({
       data: {
-        userId,
-        amount: amountInCentsFinal,
-        status: 'pending',
-        couponId: null, // será preenchido se tiver couponCode
+        userId: user.id,
+        amount: amountInCents,
+        status: "pending",
+        couponId: null,
+        metadata,
       },
-    })
+    });
 
-    console.log('[CREATE_PIX] transaction criada', { transactionId: transaction.id, amount, userId })
-
-    // 🔹 Se veio couponCode, vinculamos à transação mas NÃO incrementamos ainda
+    // Cupom
     if (couponCode) {
       const coupon = await prisma.coupon.findUnique({
         where: { code: couponCode.toUpperCase() },
-      })
+      });
 
-      if (!coupon) {
-        return res.status(404).json({ error: 'Cupom não encontrado' })
-      }
-
+      if (!coupon) return res.status(404).json({ error: "Cupom não encontrado" });
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-        return res.status(400).json({ error: 'Limite de usos atingido' })
+        return res.status(400).json({ error: "Limite de usos atingido" });
       }
 
       transaction = await prisma.transaction.update({
         where: { id: transaction.id },
         data: { couponId: coupon.id },
-      })
-
-      console.log('[CREATE_PIX] cupom vinculado à transaction', { couponCode, transactionId: transaction.id })
+      });
     }
 
-    // Monta payload pro provider
+    // 🔹 6) Payload para AbacatePay
     const providerPayload = {
-      amount, // ex: 119
-      description: description || `Matrícula - ${user.name}`,
-      expiresIn: expiresIn ?? 3600,
+      amount: amountInCents,
+      description: `Matrícula - ${brand}`,
+      expiresIn: 3600,
       customer: {
-        name: customer.name,
-        email: customer.email,
-        cellphone: customer.cellphone,
-        taxId: customer.taxId,
+        name: nome,
+        email,
+        cellphone: telefone,
+        taxId: cpf,
       },
       metadata: {
         transactionId: transaction.id,
-        userId,
-        planId,
-        couponCode: couponCode || null, // opcional pra rastrear também no provider
+        ...metadata,
       },
-    }
+    };
 
-    console.log('[CREATE_PIX] payload para AbacatePay:', JSON.stringify(providerPayload, null, 2))
-
-    // Chamar SDK AbacatePay
-    const billing = await abacate.pixQrCode.create(providerPayload as any)
+    const billing = await abacate.pixQrCode.create(providerPayload as any);
 
     if (!billing) {
-      await prisma.transaction.update({ where: { id: transaction.id }, data: { status: 'error' } })
-      console.error('[CREATE_PIX] resposta vazia do provider')
-      return res.status(502).json({ error: 'Resposta vazia do provider' })
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: "error" },
+      });
+      return res.status(502).json({ error: "Erro no provider" });
     }
 
-    console.log('[CREATE_PIX] resposta do provider:', JSON.stringify(billing, null, 2))
-
-    // Retornar QR Code e transactionId
     return res.status(200).json({
-      pixQrCode: billing,
+      success: true,
       transactionId: transaction.id,
-    })
+      pixQrCode: billing,
+      sentPayload: { customer: providerPayload.customer, metadata },
+    });
   } catch (err: any) {
-    console.error('[CREATE_PIX] erro:', err)
-    return res.status(500).json({ error: 'Erro interno do servidor', details: err?.message ?? err })
+    console.error("[CREATE_CHECKOUT_ERROR]", err);
+    return res.status(500).json({ error: "Erro interno", details: err.message });
   }
 }
