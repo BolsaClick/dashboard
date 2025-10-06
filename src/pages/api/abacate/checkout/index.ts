@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import AbacatePay from "abacatepay-nodejs-sdk";
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -67,9 +67,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 🔹 2) Formatando datas
-    const birthDateForCogna = dataNascimento ? format(new Date(dataNascimento), "dd/MM/yyyy") : null;
-    const birthDateForKroton = dataNascimento ? format(new Date(dataNascimento), "yyyy-MM-dd") : null;
+   let birthDateForCogna: string | null = null;
+let birthDateForKroton: string | null = null;
 
+if (dataNascimento) {
+  // "31-12-2000" (DD-MM-YYYY) → Date válido
+  const parsed = parse(dataNascimento, "dd-MM-yyyy", new Date());
+
+  if (!isNaN(parsed.getTime())) {
+    birthDateForCogna = format(parsed, "dd/MM/yyyy");   // usado na Cogna
+    birthDateForKroton = format(parsed, "yyyy-MM-dd");  // usado na Kroton
+  }
+}
     // 🔹 3) Payload Cogna
     const cognaPayload = {
       dadosPessoais: {
