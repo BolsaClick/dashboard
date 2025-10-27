@@ -1,24 +1,20 @@
-import { NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-/**
- * Endpoint que recebe até 100 leads por vez e envia um por um
- * para a API da Consultoria Educação.
- * Retorna para o n8n o nome, CPF, telefone e o status (success/error).
- */
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-export async function POST(req: Request) {
   try {
-    // Lê o corpo da requisição (deve ser um array com até 100 leads)
-    const leads = await req.json();
+    const leads = req.body;
 
     if (!Array.isArray(leads)) {
-      return NextResponse.json(
-        { error: "Body must be an array of leads" },
-        { status: 400 }
-      );
+      return res.status(400).json({ error: "Body must be an array of leads" });
     }
 
-    // Array que vai armazenar os resultados de cada lead
     const results: {
       nome: string;
       cpf: string;
@@ -27,15 +23,13 @@ export async function POST(req: Request) {
       error?: string;
     }[] = [];
 
-    // Processa os leads 1 por 1
     for (const lead of leads) {
       const nome = lead?.dadosPessoais?.nome || "";
       const cpf = lead?.dadosPessoais?.cpf || "";
       const telefone = lead?.dadosPessoais?.celular || "";
 
       try {
-        // Envia o lead individualmente para a API da Consultoria
-        const res = await fetch(
+        const response = await fetch(
           "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
           {
             method: "POST",
@@ -47,21 +41,13 @@ export async function POST(req: Request) {
           }
         );
 
-        // Se a API retornar erro (400–500), captura o texto do erro
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText || `HTTP ${res.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || `HTTP ${response.status}`);
         }
 
-        // Se deu tudo certo → registra sucesso
-        results.push({
-          nome,
-          cpf,
-          telefone,
-          success: true,
-        });
+        results.push({ nome, cpf, telefone, success: true });
       } catch (err: any) {
-        // Se falhar → registra o erro
         results.push({
           nome,
           cpf,
@@ -71,17 +57,13 @@ export async function POST(req: Request) {
         });
       }
 
-      // 🕒 Pequeno delay entre cada requisição (evita rate-limit)
-      await new Promise((res) => setTimeout(res, 150));
+      // Delay curto pra evitar sobrecarga
+      await new Promise((r) => setTimeout(r, 150));
     }
 
-    // Retorna o resumo de todos os leads processados
-    return NextResponse.json(results);
+    return res.status(200).json(results);
   } catch (err: any) {
-    // Captura erros gerais
-    return NextResponse.json(
-      { error: err.message || "Unexpected error" },
-      { status: 500 }
-    );
+    console.error("❌ Erro geral no sync:", err);
+    return res.status(500).json({ error: err.message || "Unexpected error" });
   }
 }
