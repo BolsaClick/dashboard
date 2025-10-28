@@ -1,6 +1,18 @@
 import axios from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
 
+/**
+ * IDs possíveis (backend escolhe sozinho)
+ */
+const offerIds = [
+  "2085515023",
+  "2085448899",
+  "2085450808",
+  "2085456266",
+  "1004192238",
+  "2085465622",
+];
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -10,81 +22,83 @@ export default async function handler(
   }
 
   try {
-    console.log(
-      "📥 Body recebido no backend:",
-      JSON.stringify(req.body, null, 2)
-    );
+    let leads = req.body;
 
-    // 🔥 Se vier { json: { ... } } do n8n, extraímos corretamente
-    let leads: any[] = [];
+    console.log("🔎 RAW BODY:", JSON.stringify(leads, null, 2));
 
-    if (Array.isArray(req.body)) {
-      // Postman: [ {...}, {...} ]
-      leads = req.body;
-    } else if (req.body?.leads) {
-      // Caso tenha wrapper "leads"
-      leads = req.body.leads;
-    } else if (req.body?.json) {
-      // n8n: [{ json: {...} }]
-      leads = Array.isArray(req.body.json) ? req.body.json : [req.body.json];
-    } else if (Array.isArray(req.body) && req.body[0]?.json) {
-      // n8n: [ { json: {...} }, { json: {...} } ]
-      leads = req.body.map((i: any) => i.json);
-    } else {
-      return res
-        .status(400)
-        .json({ error: "Invalid body format – expected array of leads" });
+    // Se vier como { leads:[...] }
+    if (!Array.isArray(leads) && leads?.leads) leads = leads.leads;
+
+    if (!Array.isArray(leads)) {
+      return res.status(400).json({
+        error: "Invalid body format – expected an array of leads",
+      });
     }
 
-    console.log(`📦 Leads recebidos: ${leads.length}`);
+    console.log(`📦 Recebidos ${leads.length} leads`);
 
     const results = await Promise.allSettled(
       leads.map(async (lead, index) => {
+        const offerId = offerIds[index % offerIds.length]; // alterna automaticamente
+
+        const payloadFinal = {
+          dadosPessoais: {
+            nome: lead.nome,
+            rg: lead.rg || "00000000",
+            sexo: lead.sexo || "M",
+            cpf: lead.cpf,
+            celular: lead.celular,
+            email: lead.email || `lead${lead.cpf}@bolsaclick.com`,
+            dataNascimento: lead.dataNascimento,
+            necessidadesEspeciais: [],
+            endereco: lead.endereco,
+          },
+          inscricao: {
+            aceiteTermo: true,
+            anoConclusao: 2022,
+            enem: { isUsed: false },
+            receberEmail: true,
+            receberSMS: true,
+            receberWhatsApp: true,
+            courseOffer: {
+              id: offerId,
+              offerId,
+              brand: "ANHANGUERA",
+              degree: "UNDERGRADUATE",
+              type: "UNDERGRADUATE",
+
+              promoter: "6716698cb4d33b0008a18001",
+            },
+          },
+          promoterId: "6716698cb4d33b0008a18001",
+          idSalesChannel: 88,
+          canal: "web",
+        };
+
+        console.log(`➡️ Enviando lead ${index + 1} → offerId ${offerId}`);
+
         try {
-          // 🔥 Envia exatamente o JSON que recebeu (sem alterar)
           await axios.post(
             "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
-            lead,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              timeout: 10000,
-            }
+            payloadFinal,
+            { headers: { "Content-Type": "application/json" }, timeout: 15000 }
           );
 
-          console.log(
-            `✅ Lead enviado (${index + 1}/${leads.length}):`,
-            lead.dadosPessoais?.nome
-          );
-
-          return {
-            nome: lead.dadosPessoais?.nome,
-            cpf: lead.dadosPessoais?.cpf,
-            telefone: lead.dadosPessoais?.celular,
-            success: true,
-          };
+          return { nome: lead.nome, cpf: lead.cpf, success: true };
         } catch (err: any) {
-          console.error(
-            `❌ Erro no lead ${index + 1}/${leads.length}:`,
-            err?.response?.data || err.message
-          );
-
           return {
-            nome: lead.dadosPessoais?.nome,
-            cpf: lead.dadosPessoais?.cpf,
-            telefone: lead.dadosPessoais?.celular,
+            nome: lead.nome,
+            cpf: lead.cpf,
             success: false,
-            error: err?.response?.data || err.message,
+            error: err.response?.data || err.message,
           };
         }
       })
     );
 
     return res.status(200).json(results);
-  } catch (error: any) {
-    console.error("💥 Erro geral:", error);
-    return res.status(500).json({ error: error.message });
+  } catch (err: any) {
+    console.error("💥 Erro geral:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
