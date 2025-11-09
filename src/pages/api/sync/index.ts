@@ -70,7 +70,7 @@ export default async function handler(
         },
         inscricao: {
           aceiteTermo: true,
-          anoConclusao: lead.anoConclusao,
+          anoConclusao: 2023,
           enem: { isUsed: false },
           receberEmail: true,
           receberSMS: true,
