@@ -1,4 +1,5 @@
 import axios from "axios";
+import https from "https";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const offerIds = [
@@ -9,6 +10,9 @@ const offerIds = [
   "1004192238",
   "2085465622",
 ];
+
+// mantém conexão aberta (evita timeout por socket)
+const agent = new https.Agent({ keepAlive: true });
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,9 +25,7 @@ export default async function handler(
   try {
     let leads = req.body;
 
-    console.log("🔎 BODY RECEBIDO NO BFF:", JSON.stringify(leads, null, 2));
-
-    // ✅ normaliza para extrair { leads: [...] }
+    // normaliza caso venha como { leads: [...] }
     if (Array.isArray(leads) && leads.length === 1 && leads[0]?.leads) {
       leads = leads[0].leads;
     } else if (!Array.isArray(leads) && leads?.leads) {
@@ -32,31 +34,28 @@ export default async function handler(
 
     if (!Array.isArray(leads)) {
       return res.status(400).json({
-        error: "Formato inválido — esperado array de leads",
-        recebido: req.body,
+        error: "Invalid body format – expected array of leads",
       });
     }
 
-    console.log(`📦 Total de leads recebidos: ${leads.length}`);
+    console.log(`📦 Recebidos ${leads.length} leads`);
 
     const results: any[] = [];
 
     // ✅ ENVIO SEQUENCIAL (1 por vez)
     for (let index = 0; index < leads.length; index++) {
       const lead = leads[index];
-      const offerId = offerIds[index % offerIds.length]; // alterna automaticamente
+      const offerId = offerIds[index % offerIds.length];
 
-      // ✅ monta payload EXATO exigido pela API
       const payloadFinal = {
         dadosPessoais: {
           nome: lead.nome,
-          rg: lead.rg || "", // pode vir vazio
+          rg: lead.rg || "",
           sexo: lead.sexo || "M",
           cpf: lead.cpf?.toString().replace(/\D/g, ""),
           celular: lead.celular?.toString().replace(/\D/g, ""),
           email: lead.email,
-          dataNascimento: "14/05/2005",
-
+          dataNascimento: lead.dataNascimento,
           necessidadesEspeciais: [],
           endereco: {
             bairro: lead.endereco?.bairro,
@@ -70,7 +69,7 @@ export default async function handler(
         },
         inscricao: {
           aceiteTermo: true,
-          anoConclusao: lead.anoConclusao || 2023, // ✅ variável
+          anoConclusao: lead.anoConclusao,
           enem: { isUsed: false },
           receberEmail: true,
           receberSMS: true,
@@ -86,36 +85,46 @@ export default async function handler(
         promoterId: "6716698cb4d33b0008a18001",
         idSalesChannel: 88,
         canal: "web",
-        trackId: "undefined",
       };
 
-      console.log(`🚀 Enviando lead ${index + 1}/${leads.length}`);
-      console.log("➡️ PAYLOAD ENVIADO:", JSON.stringify(payloadFinal, null, 2));
+      console.log(`➡️ Enviando lead ${index + 1}/${leads.length}`);
 
-      const response = await axios.post(
-        "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
-        payloadFinal,
-        {
-          headers: { "Content-Type": "application/json" },
-          validateStatus: () => true, // não lança erro, sempre retorna status + body
-          timeout: 20000,
-        }
-      );
+      try {
+        const response = await axios.post(
+          "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
+          payloadFinal,
+          {
+            headers: { "Content-Type": "application/json" },
+            httpsAgent: agent,
+            timeout: 30000, // 30 segundos (API é instantânea)
+            validateStatus: () => true, // sempre captura resposta
+          }
+        );
 
-      console.log(`↩️ RESPOSTA API [${response.status}]:`, response.data);
+        console.log(`✅ Lead cadastrado (${response.status})`);
 
-      results.push({
-        leadEnviado: lead,
-        success: response.status >= 200 && response.status < 300,
-        httpStatus: response.status,
-        responseData: response.data,
-        payloadFinal,
-      });
+        results.push({
+          lead: lead.nome,
+          cpf: lead.cpf,
+          success: response.status >= 200 && response.status < 300,
+          status: response.status,
+          response: response.data,
+        });
+      } catch (err: any) {
+        console.error(`❌ Erro ao enviar lead`, err.message);
+
+        results.push({
+          lead: lead.nome,
+          cpf: lead.cpf,
+          success: false,
+          error: err.message,
+        });
+      }
     }
 
     return res.status(200).json(results);
   } catch (err: any) {
-    console.error("💥 ERRO NO BFF:", err);
+    console.error("💥 Erro geral:", err);
     return res.status(500).json({ error: err.message });
   }
 }
