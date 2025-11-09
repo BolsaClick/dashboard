@@ -50,7 +50,7 @@ export default async function handler(
       const payloadFinal = {
         dadosPessoais: {
           nome: lead.nome,
-          rg: lead.rg || "",
+          rg: lead.rg || "000000000",
           sexo: lead.sexo || "M",
           cpf: lead.cpf?.toString().replace(/\D/g, ""),
           celular: lead.celular?.toString().replace(/\D/g, ""),
