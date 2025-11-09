@@ -55,7 +55,8 @@ export default async function handler(
           cpf: lead.cpf?.toString().replace(/\D/g, ""),
           celular: lead.celular?.toString().replace(/\D/g, ""),
           email: lead.email,
-          dataNascimento: lead.dataNascimento,
+          dataNascimento: "14/05/2005",
+
           necessidadesEspeciais: [],
           endereco: {
             bairro: lead.endereco?.bairro,
