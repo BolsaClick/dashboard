@@ -7,7 +7,7 @@ export const config = {
   background: true,
 };
 
-// IDs de ofertas da PÓS (exemplo)
+// IDs de ofertas da PÓS
 const offerIds = [
   "6565183",
   "6566408",
@@ -17,6 +17,7 @@ const offerIds = [
   "6972888",
   "6972543",
 ];
+
 const paymentPlans = [
   "596575381",
   "596575713",
@@ -25,11 +26,22 @@ const paymentPlans = [
   "596573133",
 ];
 
-// Função para normalizar cpf
+// Normaliza CPF com 11 dígitos
 const normalizeCpf = (cpf: any) =>
   cpf?.toString().replace(/\D/g, "").padStart(11, "0");
 
-// ✅ Nova função usando API consultoriaeducacao
+// ✅ Normaliza celular SEMPRE com DDD 11 e completa com zeros
+const normalizePhone = (phone: any) => {
+  let digits = phone?.toString().replace(/\D/g, "") ?? "";
+
+  if (digits.length > 9) {
+    digits = digits.slice(-9); // mantém só os 9 finais
+  }
+
+  return `11${digits}`.padEnd(11, "0"); // força 11 + número
+};
+
+// Busca CEP da API consultoriaeducacao
 async function getAddressByCep(cep: string) {
   try {
     const cleanCep = (cep ?? "").toString().replace(/\D/g, "");
@@ -74,70 +86,73 @@ export default async function handler(
 
   console.log(`📦 Recebidos ${leads.length} leads (PÓS)`);
 
-  // Responde imediatamente e continua processamento em background
+  // ✅ responde imediatamente ao n8n e processa em background
   res.status(200).json({ status: "✅ processamento iniciado" });
 
-  // 🔥 PROCESSAMENTO SEQUENCIAL — SEM disparar tudo ao mesmo tempo
-  for (const [index, lead] of leads.entries()) {
-    try {
-      const offerId = offerIds[index % offerIds.length];
-      const paymentPlan = paymentPlans[index % paymentPlans.length];
+  // 🚀 AGORA É SIMULTÂNEO (Promise.allSettled)
+  const results = await Promise.allSettled(
+    leads.map(async (lead, index) => {
+      try {
+        const offerId = offerIds[index % offerIds.length];
+        const paymentPlan = paymentPlans[index % paymentPlans.length];
 
-      const endereco = await getAddressByCep(lead.cep);
-      if (!endereco) {
-        console.log(`⚠️ CEP inválido para lead: ${lead.nome}`);
-        continue;
+        const endereco = await getAddressByCep(lead.cep);
+        if (!endereco) {
+          console.log(`⚠️ CEP inválido para lead: ${lead.nome}`);
+          return;
+        }
+
+        const payload = {
+          dadosPessoais: {
+            nome: lead.nome,
+            rg: "000000000",
+            sexo: "M",
+            cpf: normalizeCpf(lead.cpf),
+            celular: normalizePhone(lead.celular), // ✅ AQUI COM DDD 11
+            dataNascimento: lead.dataNascimento || "10/10/1999",
+            email: lead.email,
+            necessidadesEspeciais: [],
+            endereco,
+          },
+          inscricao: {
+            aceiteTermo: true,
+            courseOffer: {
+              id: offerId,
+              brand: "platos",
+              offerBrand: "ANHANGUERA",
+              unit: "Polo Anhanguera Sao Paulo (Parque Paulistano)",
+              type: "graduate",
+            },
+            paymentPlan: {
+              id: paymentPlan,
+              installmentPrice: "84.00",
+              label: "18X de R$ 84,00",
+            },
+            receberEmail: false,
+            receberSMS: false,
+            receberWhatsApp: false,
+          },
+          promoterId: "6716698cb4d33b0008a18001",
+          idSalesChannel: 88,
+          canal: "web",
+          trackId: "",
+        };
+
+        console.log(`➡️ Enviando lead: ${lead.nome}`);
+
+        return axios.post(
+          "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
+          payload,
+          {
+            timeout: 60000,
+            validateStatus: () => true,
+          }
+        );
+      } catch (err) {
+        console.log(`❌ Erro ao enviar lead: ${lead.nome}`, err);
       }
+    })
+  );
 
-      const payload = {
-        dadosPessoais: {
-          nome: lead.nome,
-          rg: "000000000",
-          sexo: "M",
-          cpf: normalizeCpf(lead.cpf),
-          celular: lead.celular?.toString().replace(/\D/g, ""),
-          dataNascimento: lead.dataNascimento || "10/10/1999",
-          email: lead.email,
-          necessidadesEspeciais: [],
-          endereco,
-        },
-        inscricao: {
-          aceiteTermo: true,
-          courseOffer: {
-            id: offerId,
-            brand: "platos",
-            offerBrand: "ANHANGUERA",
-            unit: "Polo Anhanguera Sao Paulo (Parque Paulistano)",
-            type: "graduate",
-          },
-          paymentPlan: {
-            id: paymentPlan,
-            installmentPrice: "84.00",
-            label: "18X de R$ 84,00",
-          },
-          receberEmail: false,
-          receberSMS: false,
-          receberWhatsApp: false,
-        },
-        promoterId: "6716698cb4d33b0008a18001",
-        idSalesChannel: 88,
-        canal: "web",
-        trackId: "",
-      };
-
-      console.log(`➡️ (${index + 1}/${leads.length}) Enviando: ${lead.nome}`);
-
-      const result = await axios.post(
-        "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
-        payload,
-        { timeout: 60000, validateStatus: () => true }
-      );
-
-      console.log("✅ Resultado:", result);
-    } catch (err) {
-      console.log(`❌ Erro ao enviar lead: ${lead.nome}`, err);
-    }
-  }
-
-  console.log("🏁 Finalizado processamento de pós (sequencial)");
+  console.log("🏁 Finalizado processamento simultâneo", results.length);
 }
