@@ -8,8 +8,22 @@ export const config = {
 };
 
 // IDs de ofertas da PÓS (exemplo)
-const offerIds = ["6566024", "6566190", "10490204", "15751318"];
-const paymentPlans = ["596575381", "596575713", "597053671", "598394933"];
+const offerIds = [
+  "6566024",
+  "6566190",
+  "10490204",
+  "15751318",
+  "10490331",
+  "6972888",
+  "6972543",
+];
+const paymentPlans = [
+  "596575381",
+  "596575713",
+  "597053671",
+  "598394933",
+  "597053831",
+];
 
 // Função para normalizar cpf
 const normalizeCpf = (cpf: any) =>
