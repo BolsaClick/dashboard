@@ -22,7 +22,7 @@ const paymentPlans = [
   "596575713",
   "597053671",
   "598394933",
-  "597053831",
+  "596573133",
 ];
 
 // Função para normalizar cpf
