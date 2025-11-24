@@ -1,13 +1,13 @@
 // /pages/api/leads/background.ts
 import axios from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { appendErrorRow } from "@/lib/sheets";
 
 export const config = {
   runtime: "nodejs",
-  background: true, // ✅ NÃO EXPIRA EM 15s
+  background: true,
 };
 
-// IDs possíveis para rodízio automático
 const offerIds = [
   "2085141918",
   "2085142780",
@@ -17,17 +17,12 @@ const offerIds = [
   "2089304577",
 ];
 
-// ✅ Garante CPF com 11 dígitos
-const normalizeCpf = (cpf: any) =>
-  cpf?.toString().replace(/\D/g, "").padStart(11, "0");
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   let leads = req.body;
 
-  // ✅ normaliza formatos vindos do n8n ( { leads } ou [ { leads }] )
   if (Array.isArray(leads) && leads.length === 1 && leads[0]?.leads)
     leads = leads[0].leads;
   else if (!Array.isArray(leads) && leads?.leads) leads = leads.leads;
@@ -41,12 +36,10 @@ export default async function handler(
 
   console.log(`📦 Recebidos ${leads.length} leads para processamento`);
 
-  // ✅ Responde imediatamente (continua em background)
   res.status(200).json({ status: "✅ processamento iniciado" });
 
-  // 🔥 Dispara 100 requisições simultâneas
   await Promise.allSettled(
-    leads.map((lead, index) => {
+    leads.map(async (lead, index) => {
       const offerId = offerIds[index % offerIds.length];
 
       const payload = {
@@ -94,20 +87,48 @@ export default async function handler(
         `➡️ Enviando lead ${index + 1} | CPF ${payload.dadosPessoais.cpf}`
       );
 
-      return axios.post(
-        "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
-        payload,
-        {
-          timeout: 60000, // ✅ 60s por requisição individual
-          validateStatus: () => true, // sempre captura resposta
+      try {
+        const response = await axios.post(
+          "https://api.consultoriaeducacao.app.br/candidate/v2/storeCandidateWeb",
+          payload,
+          {
+            timeout: 60000,
+            validateStatus: () => true,
+          }
+        );
+
+        // ❌ Se deu erro, salva na planilha
+        if (response.status >= 400) {
+          await appendErrorRow([
+            lead.nome,
+            payload.dadosPessoais.cpf,
+            payload.dadosPessoais.celular,
+            payload.dadosPessoais.email,
+            JSON.stringify(response.data).substring(0, 300),
+            response.status,
+            offerId,
+            new Date().toISOString(),
+          ]);
         }
-      );
+
+        return response;
+      } catch (err: any) {
+        // ❌ Erro total (timeout, falha de rede, crash)
+        await appendErrorRow([
+          lead.nome,
+          payload.dadosPessoais.cpf,
+          payload.dadosPessoais.celular,
+          payload.dadosPessoais.email,
+          err.message,
+          "request_failed",
+          offerId,
+          new Date().toISOString(),
+        ]);
+
+        return err;
+      }
     })
-  )
-    .then((results) => {
-      console.log("🏁 Finalizado", results);
-    })
-    .catch((err) => {
-      console.error("❌ Erro no processamento:", err);
-    });
+  );
+
+  console.log("🏁 Finalizado processamento de leads");
 }
