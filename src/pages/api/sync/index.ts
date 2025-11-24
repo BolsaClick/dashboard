@@ -1,7 +1,7 @@
 // /pages/api/leads/background.ts
 import axios from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { appendErrorRow } from "@/lib/sheets";
+import { appendManyErrorRows } from "@/lib/sheets"; // <= novo método em lote
 
 export const config = {
   runtime: "nodejs",
@@ -36,6 +36,9 @@ export default async function handler(
 
   console.log(`📦 Recebidos ${leads.length} leads para processamento`);
   res.status(200).json({ status: "✅ processamento iniciado" });
+
+  // 🟢 BUFFER para armazenar os erros
+  const errorBuffer: any[] = [];
 
   await Promise.allSettled(
     leads.map(async (lead, index) => {
@@ -96,13 +99,13 @@ export default async function handler(
           }
         );
 
-        // ❌ SE API RETORNOU ERRO >= 400 → SALVAR
+        // ❌ ERRO >= 400 → APENAS ADICIONA NO BUFFER
         if (response.status >= 400) {
           console.log(
-            `❌ Lead ${index + 1} ERROR — status ${response.status} — salvo na planilha`
+            `❌ Lead ${index + 1} ERROR — status ${response.status} — adicionado ao buffer`
           );
 
-          await appendErrorRow([
+          errorBuffer.push([
             lead.nome,
             cpf,
             response.status,
@@ -113,20 +116,23 @@ export default async function handler(
         }
 
         return response;
-      } catch (err: any) {
-        // 🔥 ERRO DE REDE / TIMEOUT → NÃO SALVAR
+      } catch (err) {
         console.log(
-          `🔥 Lead ${index + 1} FALHA DE REDE — request_failed (não salvo na planilha)`
+          `🔥 Lead ${index + 1} FALHA DE REDE — request_failed (não salvo)`
         );
-
         return err;
       }
     })
-  )
-    .then(() => {
-      console.log("\n🏁 Finalizado processamento de leads");
-    })
-    .catch((err) => {
-      console.error("❌ Erro no processamento:", err);
-    });
+  );
+
+  // 🟢 FINAL DO PROCESSAMENTO → escreve em lote
+  if (errorBuffer.length > 0) {
+    console.log(`\n📄 Enviando ${errorBuffer.length} erros para a planilha...`);
+    await appendManyErrorRows(errorBuffer);
+    console.log("✅ Planilha atualizada com sucesso!");
+  } else {
+    console.log("\n🎉 Nenhum erro para salvar na planilha.");
+  }
+
+  console.log("\n🏁 Finalizado processamento de leads");
 }
