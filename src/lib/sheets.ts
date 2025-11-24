@@ -6,6 +6,7 @@ export async function appendErrorRow(row: any[]) {
     const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
     const privateKey = (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
     const spreadsheetId = process.env.ERROR_SHEET_ID;
+console.log(process.env.GOOGLE_PRIVATE_KEY);
 
     if (!clientEmail || !privateKey || !spreadsheetId) {
       console.error("❌ Faltam variáveis do Google Sheets no .env");

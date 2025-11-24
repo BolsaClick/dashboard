@@ -96,7 +96,7 @@ export default async function handler(
           }
         );
 
-        // ❌ SE API RETORNOU ERRO
+        // ❌ SE API RETORNOU ERRO >= 400 → SALVAR
         if (response.status >= 400) {
           console.log(
             `❌ Lead ${index + 1} ERROR — status ${response.status} — salvo na planilha`
@@ -114,16 +114,10 @@ export default async function handler(
 
         return response;
       } catch (err: any) {
+        // 🔥 ERRO DE REDE / TIMEOUT → NÃO SALVAR
         console.log(
-          `🔥 Lead ${index + 1} FALHA DE REDE — request_failed — salvo na planilha`
+          `🔥 Lead ${index + 1} FALHA DE REDE — request_failed (não salvo na planilha)`
         );
-
-        await appendErrorRow([
-          lead.nome,
-          cpf,
-          "request_failed",
-          payload.dadosPessoais.celular,
-        ]);
 
         return err;
       }
