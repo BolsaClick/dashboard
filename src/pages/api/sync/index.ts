@@ -35,7 +35,6 @@ export default async function handler(
   }
 
   console.log(`📦 Recebidos ${leads.length} leads para processamento`);
-
   res.status(200).json({ status: "✅ processamento iniciado" });
 
   await Promise.allSettled(
@@ -83,9 +82,9 @@ export default async function handler(
         canal: "web",
       };
 
-      console.log(
-        `➡️ Enviando lead ${index + 1} | CPF ${payload.dadosPessoais.cpf}`
-      );
+      const cpf = payload.dadosPessoais.cpf;
+
+      console.log(`\n➡️ Enviando lead ${index + 1} | CPF ${cpf}`);
 
       try {
         const response = await axios.post(
@@ -97,38 +96,43 @@ export default async function handler(
           }
         );
 
-        // ❌ Se deu erro, salva na planilha
+        // ❌ SE API RETORNOU ERRO
         if (response.status >= 400) {
+          console.log(
+            `❌ Lead ${index + 1} ERROR — status ${response.status} — salvo na planilha`
+          );
+
           await appendErrorRow([
             lead.nome,
-            payload.dadosPessoais.cpf,
-            payload.dadosPessoais.celular,
-            payload.dadosPessoais.email,
-            JSON.stringify(response.data).substring(0, 300),
+            cpf,
             response.status,
-            offerId,
-            new Date().toISOString(),
+            payload.dadosPessoais.celular,
           ]);
+        } else {
+          console.log(`✅ Lead ${index + 1} OK — status ${response.status}`);
         }
 
         return response;
       } catch (err: any) {
-        // ❌ Erro total (timeout, falha de rede, crash)
+        console.log(
+          `🔥 Lead ${index + 1} FALHA DE REDE — request_failed — salvo na planilha`
+        );
+
         await appendErrorRow([
           lead.nome,
-          payload.dadosPessoais.cpf,
-          payload.dadosPessoais.celular,
-          payload.dadosPessoais.email,
-          err.message,
+          cpf,
           "request_failed",
-          offerId,
-          new Date().toISOString(),
+          payload.dadosPessoais.celular,
         ]);
 
         return err;
       }
     })
-  );
-
-  console.log("🏁 Finalizado processamento de leads");
+  )
+    .then(() => {
+      console.log("\n🏁 Finalizado processamento de leads");
+    })
+    .catch((err) => {
+      console.error("❌ Erro no processamento:", err);
+    });
 }
