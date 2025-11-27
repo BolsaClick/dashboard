@@ -1,65 +1,54 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-interface Installment {
-  _id: string;
-  installmentNumber: string;
-  price: number;
-  dateStatus: string;
-  dateExpiration: string;
-  status: string;
-}
-
-interface Candidate {
-  _id: string;
-  name: string;
-  cpf: string;
-  dcPromoter: {
-    _id: string;
-    name: string;
-    cpf: string;
-  };
-  candidateInstallments: Installment[];
-}
-
 export default function StatusPage() {
-  const [items, setItems] = useState<Candidate[]>([]);
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  async function load() {
+    setLoading(true);
+    const res = await axios.get(`/api/status?page=${page}`);
+    setItems(res.data.data);
+    setTotalPages(res.data.totalPages);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    async function load() {
-      try {
-        const response = await axios.get<Candidate[]>("/api/status");
-        setItems(response.data);
-      } finally {
-        setLoading(false);
-      }
-    }
     load();
-  }, []);
+  }, [page]);
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Status — waiting_for & in_process</h1>
+      <h1>Status dos candidatos</h1>
 
       {loading && <p>Carregando...</p>}
 
-      {!loading && items.length === 0 && <p>Nenhum registro encontrado.</p>}
-
       {!loading &&
-        items.map((candidate) => (
+        items.map((candidate: any) => (
           <div key={candidate._id} style={{ marginBottom: 20 }}>
             <strong>{candidate.name}</strong> — {candidate.cpf}
-            <ul style={{ marginTop: 10 }}>
-              {candidate.candidateInstallments.map((inst) => (
-                <li key={inst._id}>
-                  Parcela {inst.installmentNumber} — {inst.status} — R$
-                  {inst.price}
-                </li>
-              ))}
-            </ul>
           </div>
         ))}
+
+      {/* PAGINAÇÃO */}
+      <div style={{ marginTop: 20 }}>
+        <button disabled={page === 1} onClick={() => setPage(page - 1)}>
+          Anterior
+        </button>
+
+        <span style={{ margin: "0 10px" }}>
+          Página {page} de {totalPages}
+        </span>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage(page + 1)}
+        >
+          Próxima
+        </button>
+      </div>
     </div>
   );
 }
