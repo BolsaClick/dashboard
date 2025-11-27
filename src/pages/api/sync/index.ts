@@ -1,7 +1,7 @@
 // /pages/api/leads/background.ts
+import { appendManyErrorRows } from "@/lib/sheets"; // <= novo método em lote
 import axios from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { appendManyErrorRows } from "@/lib/sheets"; // <= novo método em lote
 
 export const config = {
   runtime: "nodejs",
@@ -9,12 +9,12 @@ export const config = {
 };
 
 const offerIds = [
-  "2085141918",
-  "2085142780",
-  "2085142791",
-  "2085148646",
-  "2085148646",
-  "2089304577",
+  "2085515023",
+  "2085448899",
+  "2085450808",
+  "2085456266",
+  "1004192238",
+  "2085465622",
 ];
 
 export default async function handler(
@@ -102,7 +102,9 @@ export default async function handler(
         // ❌ ERRO >= 400 → APENAS ADICIONA NO BUFFER
         if (response.status >= 400) {
           console.log(
-            `❌ Lead ${index + 1} ERROR — status ${response.status} — adicionado ao buffer`
+            `❌ Lead ${index + 1} ERROR — status ${
+              response.status
+            } — adicionado ao buffer`
           );
 
           errorBuffer.push([
