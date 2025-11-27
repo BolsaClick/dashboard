@@ -14,6 +14,11 @@ interface Candidate {
   _id: string;
   name: string;
   cpf: string;
+  dcPromoter: {
+    _id: string;
+    name: string;
+    cpf: string;
+  };
   candidateInstallments: Installment[];
 }
 
@@ -23,46 +28,14 @@ export default function StatusPage() {
 
   useEffect(() => {
     async function load() {
-      let page = 1;
-      const limit = 1000; // pode ser 10000 se quiser
-      let finished = false;
-
-      const allCandidates: Candidate[] = [];
-
-      while (!finished) {
-        const url = `https://api.consultoriaeducacao.app.br/commission/listInstallmentsByPromoterDC/6716698cb4d33b0008a18001?limit=${limit}&page=${page}`;
-
-        console.log("Buscando página:", page);
-
-        const response = await axios.get(url);
-        const data = response.data.data.data;
-
-        // adicionar os candidatos da página atual
-        allCandidates.push(...data);
-
-        // condição de parada
-        if (data.length < limit) {
-          finished = true; // última página
-        } else {
-          page++; // próxima página
-        }
+      try {
+        const response = await axios.get<Candidate[]>("/api/status");
+        setItems(response.data);
+      } finally {
+        setLoading(false);
       }
-
-      // 🔥 FILTRO: SOMENTE waiting_for ou in_process
-      const filtered = allCandidates.filter((candidate) =>
-        candidate.candidateInstallments.some((i) =>
-          ["waiting_for", "in_process"].includes(i.status)
-        )
-      );
-
-      setItems(filtered);
-      setLoading(false);
     }
-
-    load().catch((err) => {
-      console.error("Erro ao carregar API externa:", err);
-      setLoading(false);
-    });
+    load();
   }, []);
 
   return (
@@ -71,6 +44,8 @@ export default function StatusPage() {
 
       {loading && <p>Carregando...</p>}
 
+      {!loading && items.length === 0 && <p>Nenhum registro encontrado.</p>}
+
       {!loading &&
         items.map((candidate) => (
           <div key={candidate._id} style={{ marginBottom: 20 }}>
@@ -78,7 +53,7 @@ export default function StatusPage() {
             <ul style={{ marginTop: 10 }}>
               {candidate.candidateInstallments.map((inst) => (
                 <li key={inst._id}>
-                  Parcela {inst.installmentNumber}: {inst.status} — R$
+                  Parcela {inst.installmentNumber} — {inst.status} — R$
                   {inst.price}
                 </li>
               ))}

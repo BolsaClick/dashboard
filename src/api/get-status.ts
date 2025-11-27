@@ -1,6 +1,6 @@
-import { api } from "../lib/axios";
+import axios from "axios";
 
 export async function getStatus() {
-  const response = await api.get("/api/status");
-  return response.data;
+  const response = await axios.get("/api/status");
+  return response.data; // já filtrado e pronto
 }
