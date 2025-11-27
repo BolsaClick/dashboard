@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export async function getStatus() {
-  const response = await axios.get("/api/status");
-  return response.data; // já filtrado e pronto
+export async function getStatus(page: number = 1) {
+  const response = await axios.get(`/api/status?page=${page}`);
+  return response.data;
 }

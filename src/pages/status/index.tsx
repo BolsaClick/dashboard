@@ -1,4 +1,4 @@
-import axios from "axios";
+import { getStatus } from "@/api/get-status";
 import { useEffect, useState } from "react";
 
 export default function StatusPage() {
@@ -9,9 +9,11 @@ export default function StatusPage() {
 
   async function load() {
     setLoading(true);
-    const res = await axios.get(`/api/status?page=${page}`);
-    setItems(res.data.data);
-    setTotalPages(res.data.totalPages);
+    const res = await getStatus(page);
+
+    setItems(res.data);
+    setTotalPages(res.totalPages);
+
     setLoading(false);
   }
 
