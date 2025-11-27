@@ -1,50 +1,45 @@
-import { getStatus, StatusItem } from "@/api/get-status";
+import { getStatus } from "@/api/get-status";
 import { useEffect, useState } from "react";
+
+interface StatusItem {
+  name: string;
+  cpf: string;
+}
 
 export default function StatusPage() {
   const [items, setItems] = useState<StatusItem[]>([]);
-  const [page, setPage] = useState(1);
-  const perPage = 20;
-
-  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const result = await getStatus(page, perPage);
-      setItems(result.data);
-      setTotalPages(result.totalPages);
+      try {
+        const data = await getStatus(); // agora sem page/perPage
+        setItems(data);
+      } finally {
+        setLoading(false);
+      }
     }
+
     load();
-  }, [page]);
+  }, []);
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Status — CPF e Nome</h1>
+      <h1>Status — Lista de CPF e Nome</h1>
 
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <strong>{item.name}</strong> — {item.cpf}
-          </li>
-        ))}
-      </ul>
+      {loading && <p>Carregando...</p>}
 
-      <div style={{ marginTop: 20 }}>
-        <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-          Anterior
-        </button>
+      {!loading && items.length === 0 && <p>Nenhum registro encontrado.</p>}
 
-        <span style={{ margin: "0 10px" }}>
-          Página {page} de {totalPages}
-        </span>
-
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage(page + 1)}
-        >
-          Próxima
-        </button>
-      </div>
+      {!loading && items.length > 0 && (
+        <ul>
+          {items.map((item, index) => (
+            <li key={index} style={{ marginBottom: 10 }}>
+              <strong>{item.name}</strong> — {item.cpf}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
