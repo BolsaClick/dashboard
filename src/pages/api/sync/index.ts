@@ -105,12 +105,18 @@ export default async function handler(
             `❌ Lead ${index + 1} ERROR — status ${response.status} — adicionado ao buffer`
           );
 
-          errorBuffer.push([
-            lead.nome,
-            cpf,
-            response.status,
-            payload.dadosPessoais.celular,
-          ]);
+     const errorMessage =
+  response.data?.data ||
+  response.data?.message ||
+  JSON.stringify(response.data);
+
+errorBuffer.push([
+  lead.nome,
+  cpf,
+  response.status,
+  payload.dadosPessoais.celular,
+  errorMessage,
+]);
         } else {
           console.log(`✅ Lead ${index + 1} OK — status ${response.status}`);
         }
