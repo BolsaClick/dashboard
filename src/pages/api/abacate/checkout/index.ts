@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const abacateKey = process.env.ABACATEPAY_API_KEY;
-  const promoterIdCogna = process.env.COGNA_PROMOTER_ID || "6716698cb4d33b0008a18001";
+  const promoterIdCogna = process.env.COGNA_PROMOTER_ID || "6747dacd5453680008633329";
 
   if (!abacateKey) {
     console.error("[CREATE_CHECKOUT] AbacatePay key missing");
