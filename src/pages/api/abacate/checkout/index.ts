@@ -1,19 +1,24 @@
 // pages/api/abacate/checkout.ts
-import type { NextApiRequest, NextApiResponse } from "next";
-import AbacatePay from "abacatepay-nodejs-sdk";
 import { prisma } from "@/lib/prisma";
+import AbacatePay from "abacatepay-nodejs-sdk";
 import { format, parse } from "date-fns";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Method not allowed" });
 
   const abacateKey = process.env.ABACATEPAY_API_KEY;
-  const promoterIdCogna = process.env.COGNA_PROMOTER_ID || "6747dacd5453680008633329";
+  const promoterIdCogna =
+    process.env.COGNA_PROMOTER_ID || "6747dacd5453680008633329";
 
   if (!abacateKey) {
     console.error("[CREATE_CHECKOUT] AbacatePay key missing");
@@ -38,8 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       estado,
       cep,
       anoConclusao,
-      offerId,   // Cogna
-      idDMH,     // Kroton
+      offerId, // Cogna
+      idDMH, // Kroton
       brand,
       degree,
       type,
@@ -67,18 +72,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 🔹 2) Formatando datas
-   let birthDateForCogna: string | null = null;
-let birthDateForKroton: string | null = null;
+    let birthDateForCogna: string | null = null;
+    let birthDateForKroton: string | null = null;
 
-if (dataNascimento) {
-  // "31-12-2000" (DD-MM-YYYY) → Date válido
-  const parsed = parse(dataNascimento, "dd-MM-yyyy", new Date());
+    if (dataNascimento) {
+      // "31-12-2000" (DD-MM-YYYY) → Date válido
+      const parsed = parse(dataNascimento, "dd-MM-yyyy", new Date());
 
-  if (!isNaN(parsed.getTime())) {
-    birthDateForCogna = format(parsed, "dd/MM/yyyy");   // usado na Cogna
-    birthDateForKroton = format(parsed, "yyyy-MM-dd");  // usado na Kroton
-  }
-}
+      if (!isNaN(parsed.getTime())) {
+        birthDateForCogna = format(parsed, "dd/MM/yyyy"); // usado na Cogna
+        birthDateForKroton = format(parsed, "yyyy-MM-dd"); // usado na Kroton
+      }
+    }
     // 🔹 3) Payload Cogna
     const cognaPayload = {
       dadosPessoais: {
@@ -128,7 +133,7 @@ if (dataNascimento) {
         aceitaReceberSMS: true,
         aceitaReceberWhatsApp: true,
         ofertas: { primeiraOpcao: { idDMH } },
-        canalVendas: { id: 98 }, // 🔹 fixo para Kroton
+        canalVendas: { id: 141 }, // 🔹 fixo para Kroton
         idTipoProva: 2,
       },
       dadosPessoais: {
@@ -154,9 +159,9 @@ if (dataNascimento) {
       userId: user.id,
       brand,
       courseId: planId,
-      offerId,                 // Cogna
-      idDMH,                   // Kroton
-      promoterIdCogna,         // 🔹 sempre enviado
+      offerId, // Cogna
+      idDMH, // Kroton
+      promoterIdCogna, // 🔹 sempre enviado
       idSalesChannelCogna: 88,
       idSalesChannelKroton: 98,
       canal: "web",
@@ -181,7 +186,8 @@ if (dataNascimento) {
         where: { code: couponCode.toUpperCase() },
       });
 
-      if (!coupon) return res.status(404).json({ error: "Cupom não encontrado" });
+      if (!coupon)
+        return res.status(404).json({ error: "Cupom não encontrado" });
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
         return res.status(400).json({ error: "Limite de usos atingido" });
       }
@@ -227,6 +233,8 @@ if (dataNascimento) {
     });
   } catch (err: any) {
     console.error("[CREATE_CHECKOUT_ERROR]", err);
-    return res.status(500).json({ error: "Erro interno", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Erro interno", details: err.message });
   }
 }
