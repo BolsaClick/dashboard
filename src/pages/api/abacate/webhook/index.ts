@@ -54,7 +54,7 @@ async function processEnrollment({
   common,
 }: {
   trx: any;
-  source: "cogna" | "kroton";
+  source: "cogna";
   payload: any;
   serviceFn: (data: any) => Promise<any>;
   metadata: any;
