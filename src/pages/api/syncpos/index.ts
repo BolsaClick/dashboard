@@ -115,6 +115,7 @@ export default async function handler(
             endereco,
           },
           inscricao: {
+            voucher: "GALENA+15",
             aceiteTermo: true,
             courseOffer: {
               id: offerId,
