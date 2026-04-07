@@ -34,7 +34,12 @@ async function fetchNewToken(): Promise<string> {
   return response.data.access_token;
 }
 
-async function getToken(): Promise<string> {
+export function invalidateTokenCache() {
+  cachedToken = null;
+  tokenExpiresAt = null;
+}
+
+export async function getToken(): Promise<string> {
   const now = Date.now();
 
   if (cachedToken && tokenExpiresAt && now < tokenExpiresAt) {
