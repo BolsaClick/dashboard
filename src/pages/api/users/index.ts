@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Cors from 'cors'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcrypt' // opcional para hash de senha
+import bcrypt from 'bcryptjs' // opcional para hash de senha
 
 // Inicializa CORS
 const cors = Cors({
