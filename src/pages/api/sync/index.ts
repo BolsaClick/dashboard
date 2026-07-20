@@ -12,6 +12,8 @@ const offerIds = [
   "2122452084",
   "2122471390",
   "2122452119",
+  "2122458953",
+  "2122480916",
 ];
 
 export default async function handler(
